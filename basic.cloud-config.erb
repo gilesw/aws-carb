@@ -1,0 +1,83 @@
+#cloud-config
+
+# the above line is required by cloud init
+
+<% if defined?(hostname) %>
+hostname: <%= hostname %>
+fqdn: <%= hostname -%>.<%= domain %>
+<% end %>
+
+<% if defined?(ssh_keys) %>
+ssh_authorized_keys:
+  <% ssh_keys.each do |key| %>
+  - <%= key %>
+  <% end %>
+<% end %>
+
+bootcmd:
+  - echo "deb http://<%= repository_server -%>/debian/ <%= debian_distro -%> main" >> /etc/apt/sources.list.d/semantico.list
+  - wget -O - http://<%= repository_server -%>/RPM-GPG-KEY-semantico | apt-key add -
+
+package_upgrade: true
+
+manage_etc_hosts: true
+
+packages:
+  - puppet
+  - facter
+  - lsb-release
+
+  # required by aws-sdk
+  - ruby1.9.1
+  - ruby1.9.1-dev
+  - libxml2-dev
+  - build-essential
+
+  # required by awscli
+  - python-pip
+
+
+puppet:
+  conf:
+    main:
+      logdir: /var/log/puppet
+      vardir: /var/lib/puppet
+      rundir: /var/run/puppet
+      ssldir: /etc/puppet/ssl
+      confdir: /etc/puppet
+      pluginsync: true
+      factpath: /var/lib/puppet/lib/facter:/var/lib/puppet/facts
+    agent:
+      server: <%= puppet_master %>
+      ca_server: <%= ca_server %>
+      configtimeout: 600
+      preferred_serialization_format: marshal
+
+runcmd:
+  - service puppet stop
+  - puppet agent --onetime --no-daemonize -v > /var/log/puppet-initial_run.log
+  - update-alternatives --set ruby /usr/bin/ruby1.9.1
+  - update-alternatives --set gem /usr/bin/gem1.9.1
+
+  # building the native extensions for this gem takes a long time,
+  # if you reboot the machine soon after machine creation
+  # then this gem may not have finished installing and your
+  # DNS will not get updated on boot.
+  - gem install aws-sdk facter --no-ri --no-rdoc
+
+  # script to update route53 dynamic dns configuration on boot..
+
+  - pip install awscli
+
+  # filthy hack..
+  - mkdir /root/.aws
+  - echo '[profile s3]' >> /root/.aws/config
+  - echo 'aws_access_key_id = <%= s3_access_key_id %>' >> /root/.aws/config
+  - echo 'aws_secret_access_key = <%= s3_secret_access_key %>' >> /root/.aws/config
+  - echo 'region = <%= s3_region %>' >> /root/.aws/config
+
+  - aws s3 --profile s3 cp --region us-east-1 s3://aws.semantico.com.cloudinit/aws-route53.conf /etc/aws-route53.conf
+  - aws s3 --profile s3 cp --region us-east-1 s3://aws.semantico.com.cloudinit/route53-dynamic_dns_update.rb /usr/local/bin/route53-dynamic_dns_update.rb
+  - chmod 400 /etc/aws-route53.conf
+  - chmod 755 /usr/local/bin/route53-dynamic_dns_update.rb
+  - echo '/usr/local/bin/route53-dynamic_dns_update.rb' > /etc/rc.local

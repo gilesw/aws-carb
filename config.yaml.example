@@ -1,0 +1,24 @@
+common:
+  domain: <domain>
+
+ec2:
+  access_key_id: <key_id>
+  secret_access_key: <secret_key>
+
+template_options:
+  repository_server: <repo_server>
+  debian_distro: <distro>
+  puppet_master: <puppetmaster>
+  s3_access_key_id: <key_id>
+  s3_secret_access_key: <secret_key>
+  s3_region: us-east-1
+  ssh_keys:
+    - <key>
+    - <key>
+    - <key>
+
+route53:
+  access_key_id: <key_id>
+  secret_access_key: <secret_key>
+  zone: <zone_id>
+  ttl: 600
