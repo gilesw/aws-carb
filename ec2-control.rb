@@ -9,15 +9,14 @@ require 'shell-spinner'
 require 'active_support'
 require 'ostruct'
 require 'subcommand'
+require 'colorize'
 
 include Subcommands
 
-# * change 'puts' to debug
 # * add security group and vpc params
-# * usage banner
-# * route 53
 # * list stuff
 # * terminate stuff
+# * turn off spinner if not a tty?
 
 # monkeypatch shell spinner to fix some bugs..
 module ShellSpinner
@@ -28,10 +27,12 @@ module ShellSpinner
 
     private
 
+    # FIXME: better way to disable colours?
+    #colorize = colorize ? lambda { |s,c| s.colorize(c) } : lambda { |s,c| s }
+    #colorize.call(s, :red)
+
     def with_message(text = nil, colorize = false)
-      if colorize
-        require 'colorize'
-      else
+      if !colorize or $stdout.tty?
         String.class_eval do
           def colorize(color)
             self
@@ -105,7 +106,7 @@ def die(message)
 end
 
 def debug(message = nil)
-  puts message if $verbose == true
+  puts message if $VERBOSE == true
 end
 
 module Ec2Control
@@ -151,6 +152,7 @@ module Ec2Control
         option.summary_width = 50
         option.summary_indent = '    '
 
+        # ec2 specific options..
         option.on "--region=REGION", "specify a region" do |region|
           subcommand_parameters.region = region
         end
@@ -170,6 +172,8 @@ module Ec2Control
         option.on "--user-data=DATA", "user data" do |user_data|
           subcommand_parameters.user_data = user_data
         end
+
+        # template options..
 
         option.on "--user-data-template=FILE", "user data template" do |user_data_template|
           subcommand_parameters.user_data_template = user_data_template
@@ -405,7 +409,7 @@ module Ec2Control
 
     subcommand, global_parameters, subcommand_parameters, config = CliArgumentParser.parse
 
-    $verbose = global_parameters.verbose
+    $VERBOSE = global_parameters.verbose
 
     config = Config.check(global_parameters, subcommand_parameters)
     Config.display(subcommand_parameters)
@@ -516,10 +520,13 @@ module Ec2Control
     begin
       aws = AWS.config(config['ec2'])
     rescue => e
-      puts "# failed to load aws credentials!"
-      puts "# is there an 'ec2' section in your config file"
-      puts "# that contains 'access_key_id' and 'secret_access_key'"
-      puts "# entries?"
+      puts <<-HEREDOC.strip_heredoc
+        # failed to load aws credentials!
+        # is there an 'ec2' section in your config file
+        # that contains 'access_key_id' and 'secret_access_key'
+        # entries?
+      HEREDOC
+
       die e
     end
 
@@ -556,12 +563,22 @@ module Ec2Control
 
     ShellSpinner "# creating instance", false do
       begin
-        instance = ec2.instances.create(
-          :image_id      => subcommand_parameters.image_id,
-          :instance_type => subcommand_parameters.instance_type,
-          :key_name      => subcommand_parameters.key_name,
-          :user_data     => user_data,
-        )
+        # FIXME
+        #
+        # http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/InstanceCollection.html
+        #
+        # ec2_params = {}
+        #ec2_parameters.each do |key, value|
+        #  ec2_params[key.to_sym] = value
+        #end
+        #  :image_id      => subcommand_parameters.image_id,
+        #  :instance_type => subcommand_parameters.instance_type,
+        #  :key_name      => subcommand_parameters.key_name,
+        #  :user_data     => user_data,
+
+        ec2_parameters.merge({ :user_data => user_data })
+
+        instance = ec2.instances.create(ec2_parameters)
       rescue => e
         die e
       end
@@ -606,22 +623,27 @@ module Ec2Control
   end
 
   def self.show_instance_details(instance, new_records, hostname, domain)
-    puts "# instance details:"
-    puts "id:               #{instance.id}"
-    puts "public ip:        #{instance.public_ip_address}"
-    puts "public aws fqdn:  #{instance.public_dns_name}"
-    puts "private ip:       #{instance.private_ip_address}"
-    puts "private aws fqdn: #{instance.private_dns_name}"
+    puts <<-HEREDOC.strip_heredoc
+      # instance details:
+      id:               #{instance.id}
+      public ip:        #{instance.public_ip_address}
+      public aws fqdn:  #{instance.public_dns_name}
+      private ip:       #{instance.private_ip_address}
+      private aws fqdn: #{instance.private_dns_name}
+    HEREDOC
 
     unless hostname.nil? or domain.nil?
-      puts "public fqdn:      #{new_records[:public][:alias]}"
-      puts "private fqdn:     #{new_records[:private][:alias]}"
+      puts <<-HEREDOC.strip_heredoc
+        public fqdn:      #{new_records[:public][:alias]}
+        private fqdn:     #{new_records[:private][:alias]}
+      HEREDOC
     end
 
-    puts
-
-    puts "# connect: "
-    puts "ssh #{instance.dns_name} -l ubuntu"
+    puts <<-HEREDOC.strip_heredoc
+      
+      # connect: 
+      ssh #{instance.dns_name} -l ubuntu
+    HEREDOC
   end
 end
 
