@@ -46,10 +46,12 @@ module ShellSpinner
         catch_user_output { yield }
 
         print "done\n".colorize(:green) unless text.nil?
+
         print user_output.colorize(:blue)
 
       rescue Exception => e
         print "\bfail\n".colorize(:red) unless text.nil?
+
         print user_output.colorize(:blue)
 
         re_raise_exception e
@@ -127,6 +129,7 @@ module Ec2Control
       subcommand_parameters.user_data_template           = nil
       subcommand_parameters.user_data_template_variables = nil
       subcommand_parameters.show_parsed_template         = false
+      subcommand_parameters.iam_instance_profile         = nil
 
       global_options do |option|
         option.banner      = "\n             amazon web services - ec2 control program"
@@ -153,6 +156,7 @@ module Ec2Control
         option.summary_indent = '    '
 
         # ec2 specific options..
+
         option.on "--region=REGION", "specify a region" do |region|
           subcommand_parameters.region = region
         end
@@ -171,6 +175,60 @@ module Ec2Control
 
         option.on "--user-data=DATA", "user data" do |user_data|
           subcommand_parameters.user_data = user_data
+        end
+
+        option.on "--iam-instance-profile=PROFILE", "the name or ARN of an IAM instance profile. this provides credentials to the ec2 instance(s) via the instance metadata service." do |profile|
+          subcommand_parameters.iam_instance_profile = profile
+        end
+
+        #monitoring_enabled
+        option.on "--monitoring-enabled=BOOLEAN", "" do |boolean|
+          subcommand_parameters.monitoring_enabled = boolean
+        end
+
+        #availability_zone
+        option.on "--availability-zone=ZONE", "" do |zone|
+          subcommand_parameters.availability_zone = zone
+        end
+
+        #security_groups
+        option.on "--security-groups=ARRAY", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #security_group_ids
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #disable_api_termination
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #instance_initiated_shutdown_behavior
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #subnet
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #private_ip_address
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #dedicated_tenancy
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
+        end
+
+        #ebs_optimized
+        option.on "--=", "" do ||
+          subcommand_parameters. = 
         end
 
         # template options..
@@ -375,7 +433,7 @@ module Ec2Control
         if ! user_data_template_resolved.nil? and ! subcommand_parameters.user_data.nil?
           puts "# combining user_data with user_data_template"
           user_data = user_data_template_resolved + subcommand_parameters.user_data
-          puts 
+          puts
         elsif ! user_data_template_resolved.nil? and subcommand_parameters.user_data.nil?
           debug "# no raw user_data parsed in"
           user_data = user_data_template_resolved
@@ -505,7 +563,7 @@ module Ec2Control
       debug "# found hostname and domain:"
       debug "hostname: #{hostname}"
       debug "domain:   #{domain}"
-      debug 
+      debug
     end
 
     new_records = {
