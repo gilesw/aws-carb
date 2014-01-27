@@ -32,8 +32,6 @@ module Ec2Control
   # main logic
   #
 
-  attr_reader :verbose
-
   def self.run
 
     #
@@ -59,6 +57,9 @@ module Ec2Control
 
     Config.display(subcommand_parameters)
 
+    ## check whether hostname and domain were specified by the user or are in the config file
+    hostname, domain, new_records = establish_hostname_and_domain(config, subcommand_parameters)
+
     #
     # UserData handling
     # 
@@ -67,7 +68,17 @@ module Ec2Control
     $VERBOSE = global_parameters.verbose
 
     ## establish what user_data will be passed into the cloud instance
-    user_data = UserData.configure_user_data(config, subcommand_parameters)
+    # user_data = UserData.configure_user_data(config, subcommand_parameters)
+
+    erb, merged_user_data_template_variables = merge_variables_for_user_data_template(config, subcommand_parameters)
+
+    if subcommand_parameters.user_data_template_variables
+      user_data_template_resolved = resolve_template(erb, merged_user_data_template_variables)
+    end
+
+    show_parsed_template(subcommand_parameters, user_data_template_resolved)
+
+    user_data = combine_user_data(subcommand_parameters, user_data_template_resolved)
 
     #
     # ec2 / route53
@@ -79,8 +90,6 @@ module Ec2Control
     ## initialize ec2 object with credentials
     ec2 = initialize_ec2_instance(config, subcommand_parameters)
 
-    ## check whether hostname and domain were specified by the user or are in the config file
-    hostname, domain, new_records = establish_hostname_and_domain(config, subcommand_parameters)
 
     ## check whether DNS records already exist..
     record_sets = check_hostname_and_domain_availability(config, hostname, domain, new_records)
@@ -413,42 +422,65 @@ module Ec2Control
       return ec2_parameters, general_parameters
     end
 
-    def self.display(subcommand_parameters)
-      puts "# EC2 instance options:"
+    # try and work out the hostname, presidence is:
+    #
+    # * config file
+    # * user_data_template_variables cli args
+    # 
+    # note: raw user_data is not checked (not to be confused with user_data_template or user_data_template_variables..)
+    #
+    def self.establish_hostname_and_domain(config, subcommand_parameters)
 
-      # FIXME: align variables in a column..
-      keys        = subcommand_parameters.marshal_dump.group_by(&:size).max
-      longest_key = keys[1][keys[0]][0].length
+      hostname, domain = nil
 
-      subcommand_parameters.marshal_dump.each do |key, value|
+      ShellSpinner "# checking whether hostname and domain have been set", false do
+        if config['common']
+          hostname = config['common']['hostname'] if config['common']['hostname']
+          domain   = config['common']['domain']   if config['common']['domain']
+        end
 
-        next if value.nil?
-        next if String(value).empty?
+        if config['route53']
+          hostname = config['route53']['hostname'] if config['route53']['hostname']
+          domain   = config['route53']['domain']   if config['route53']['domain']
+        end
 
-        puts "#{key}:".to_s.ljust(longest_key + 2) + "#{value}" unless value.nil?
+        if subcommand_parameters.user_data_template_variables
+          user_data_template_variables = eval(subcommand_parameters.user_data_template_variables)
+
+          hostname = user_data_template_variables[:hostname] unless user_data_template_variables[:hostname].nil?
+          domain   = user_data_template_variables[:domain]   unless user_data_template_variables[:domain].nil?
+        end
       end
 
       puts
-    end
-  end
 
-  module UserData
-    def self.configure_user_data(config, subcommand_parameters)
-
-      erb, merged_user_data_template_variables = merge_variables_for_user_data_template(config, subcommand_parameters)
-
-      if subcommand_parameters.user_data_template_variables
-        user_data_template_resolved = resolve_template(erb, merged_user_data_template_variables)
+      if domain.nil? and hostname.nil?
+        debug "# WARNING: hostname and domain not found in config file and/or user_data_template_arguments"
+        debug "#          route53 dynamic DNS will not be updated!"
+        debug
+      elsif domain and hostname.nil?
+        debug "# WARNING: hostname not found in config file or user_data_template_arguments."
+        debug "#          a random hostname will be picked for your instance and route53"
+        debug "#          dynamic dns will not be updated"
+        debug
+      elsif domain.nil? and hostname
+        debug "# WARNING: domain not found in config file or user_data_template_arguments."
+        debug "#          route53 dynamic dns will not be updated"
+        debug
+      else
+        debug "# found hostname and domain:"
+        debug "hostname: #{hostname}"
+        debug "domain:   #{domain}"
+        debug
       end
 
-      show_parsed_template(subcommand_parameters, user_data_template_resolved)
+      new_records = {
+        :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
+        :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+      }
 
-      user_data = combine_user_data(subcommand_parameters, user_data_template_resolved)
-
-      return user_data
+      return hostname, domain, new_records
     end
-
-    private
 
     # variables to be used in your template can come from the following places:
     # 
@@ -528,6 +560,26 @@ module Ec2Control
       return erb, user_data_template_variables_merged
     end
 
+    def self.display(subcommand_parameters)
+      puts "# EC2 instance options:"
+
+      # FIXME: align variables in a column..
+      keys        = subcommand_parameters.marshal_dump.group_by(&:size).max
+      longest_key = keys[1][keys[0]][0].length
+
+      subcommand_parameters.marshal_dump.each do |key, value|
+
+        next if value.nil?
+        next if String(value).empty?
+
+        puts "#{key}:".to_s.ljust(longest_key + 2) + "#{value}" unless value.nil?
+      end
+
+      puts
+    end
+  end
+
+  module UserData
     def self.resolve_template(erb, user_data_template_variables_merged)
       begin
         return erb.result(user_data_template_variables_merged)
@@ -637,66 +689,6 @@ module Ec2Control
     end
 
     module Route53
-      # try and work out the hostname, presidence is:
-      #
-      # * config file
-      # * user_data_template_variables cli args
-      # 
-      # note: raw user_data is not checked (not to be confused with user_data_template or user_data_template_variables..)
-      #
-      def self.establish_hostname_and_domain(config, subcommand_parameters)
-
-        hostname, domain = nil
-
-        ShellSpinner "# checking whether hostname and domain have been set", false do
-          if config['common']
-            hostname = config['common']['hostname'] if config['common']['hostname']
-            domain   = config['common']['domain']   if config['common']['domain']
-          end
-
-          if config['route53']
-            hostname = config['route53']['hostname'] if config['route53']['hostname']
-            domain   = config['route53']['domain']   if config['route53']['domain']
-          end
-
-          if subcommand_parameters.user_data_template_variables
-            user_data_template_variables = eval(subcommand_parameters.user_data_template_variables)
-
-            hostname = user_data_template_variables[:hostname] unless user_data_template_variables[:hostname].nil?
-            domain   = user_data_template_variables[:domain]   unless user_data_template_variables[:domain].nil?
-          end
-        end
-
-        puts
-
-        if domain.nil? and hostname.nil?
-          debug "# WARNING: hostname and domain not found in config file and/or user_data_template_arguments"
-          debug "#          route53 dynamic DNS will not be updated!"
-          debug
-        elsif domain and hostname.nil?
-          debug "# WARNING: hostname not found in config file or user_data_template_arguments."
-          debug "#          a random hostname will be picked for your instance and route53"
-          debug "#          dynamic dns will not be updated"
-          debug
-        elsif domain.nil? and hostname
-          debug "# WARNING: domain not found in config file or user_data_template_arguments."
-          debug "#          route53 dynamic dns will not be updated"
-          debug
-        else
-          debug "# found hostname and domain:"
-          debug "hostname: #{hostname}"
-          debug "domain:   #{domain}"
-          debug
-        end
-
-        new_records = {
-          :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-          :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
-        }
-
-        return hostname, domain, new_records
-      end
-
       def self.initialize_aws_with_credentials(config)
         begin
           aws = AWS.config(config['ec2'])
