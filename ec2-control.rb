@@ -6,7 +6,7 @@ require 'erubis'
 require 'awesome_print'
 require 'securerandom'
 require 'shell-spinner'
-require 'active_support'
+require 'active_support/core_ext/string/strip'
 require 'ostruct'
 require 'subcommand'
 require 'colorize'
@@ -18,11 +18,13 @@ include Subcommands
 # * terminate stuff
 # * turn off spinner if not a tty?
 
+
 # monkeypatch shell spinner to fix some bugs..
+
 module ShellSpinner
   class Runner
     def wrap_block(text = nil, colorize = true, &block)
-      with_message(text) { with_spinner &block }
+      with_message(text) { with_spinner(&block) }
     end
 
     private
@@ -66,13 +68,14 @@ def ShellSpinner(text = nil, colorize = true, &block)
   runner.wrap_block(text, colorize, &block)
 end
 
+
 # override the output from optparse to be a bit more aesthetically pleasing
 module Subcommands
   def print_actions
-    cmdtext = "subcommands:"
+    cmdtext = "subcommands:\n"
 
     @commands.each_pair do |c, opt|
-      cmdtext << "\n   #{c}                            #{opt.call.description}"
+      cmdtext << "\n   #{c}                                              #{opt.call.description}"
     end
 
     unless @aliases.empty?
@@ -80,7 +83,7 @@ module Subcommands
       @aliases.each_pair { |name, val| cmdtext << "   #{name} - #{val}\n"  }
     end
 
-    cmdtext << "\n\nsee '#{$0} help <command>' for more information on a specific command\n\n"
+    cmdtext << "\n\n   help <command>                                      for more information on a specific command\n\n"
   end
 
   def command *names
@@ -102,6 +105,9 @@ module Subcommands
   end
 end
 
+
+# helpers
+
 def die(message)
   puts "error: #{message}"
   exit 1
@@ -111,6 +117,14 @@ def debug(message = nil)
   puts message if $VERBOSE == true
 end
 
+
+# module is broken up into:
+#
+# Ec2Control::CliArugmentParser - argument parsing
+# Ec2Control::Config            - argument checking / config checking
+# Ec2Control::UserData          - parse user data template and possibly combine with user_data
+# Ec2Control.*                  - main methods
+#
 module Ec2Control
   module CliArgumentParser
     def self.parse
@@ -121,129 +135,200 @@ module Ec2Control
 
       global_parameters.verbose = false
 
-      subcommand_parameters.region                       = "us-east-1"
-      subcommand_parameters.image_id                     = "ami-a73264ce"
-      subcommand_parameters.instance_type                = "t1.micro"
-      subcommand_parameters.key_name                     = "aws-semantico"
-      subcommand_parameters.user_data                    = nil
-      subcommand_parameters.user_data_template           = nil
-      subcommand_parameters.user_data_template_variables = nil
-      subcommand_parameters.show_parsed_template         = false
-      subcommand_parameters.iam_instance_profile         = nil
+      # FIXME: these from config files..
+
+      # non-ec2 specific options load 
+
+      subcommand_parameters.region                               = "us-east-1"
+      subcommand_parameters.user_data_template                   = nil
+      subcommand_parameters.user_data_template_variables         = nil
+      subcommand_parameters.show_parsed_template                 = false
+
+      # sensible defaults for a few ec2 options, FIXME: load these from config file?
+
+      subcommand_parameters.image_id                             = "ami-a73264ce"
+      subcommand_parameters.instance_type                        = "t1.micro"
+      subcommand_parameters.key_name                             = "aws-semantico"
+
+      # ec2 options for ec2 instance creation
+
+      subcommand_parameters.user_data                            = nil
+      subcommand_parameters.iam_instance_profile                 = nil
+      subcommand_parameters.availability_zone                    = nil
+      subcommand_parameters.security_groups                      = nil
+      subcommand_parameters.security_group_ids                   = nil
+      subcommand_parameters.subnet                               = nil
+      subcommand_parameters.private_ip_address                   = nil
+      subcommand_parameters.dedicated_tenancy                    = nil
+      subcommand_parameters.disable_api_termination              = nil
+      subcommand_parameters.instance_initiated_shutdown_behavior = nil
+      subcommand_parameters.ebs_optimized                        = nil
+      subcommand_parameters.monitoring_enabled                   = nil
 
       global_options do |option|
-        option.banner      = "\n             amazon web services - ec2 control program"
-        option.description = "\nusage:\n    #{File.basename($0)} [global options] [subcommand [options]]\n"
+        option.banner      = "\n\n                      amazon web services - ec2 control program"
+        option.description = "\n\nusage:\n\n    #{File.basename($0)} [global options] [subcommand [options]]\n"
+
+        option.summary_width = 50
+        option.summary_indent = '    '
 
         option.separator "global options:"
+
+        option.separator ""
 
         option.on("-c", "--config=FILE", "alternate config file") do |file|
           global_parameters.config_file = file
         end
 
+        option.separator ""
+
         option.on("-v", "--verbose", "enable debug messages") do |boolean|
           global_parameters.debug = boolean
         end
+
+        option.separator ""
+
+        option.separator "    -h, --help                                         display help"
       end
 
-      add_help_option
+      #add_help_option
 
+      indent = ' ' * 55
       command :create do |option|
-        option.banner      = "\n             amazon web services - ec2 control program\n\nusage:\n    #{File.basename($0)} create [options]\n"
+        option.banner      = "\n\n                      amazon web services - ec2 control program\n\nusage:\n\n    #{File.basename($0)} create [options]\n"
         option.description = "create an ec2 instance"
 
         option.summary_width = 50
         option.summary_indent = '    '
 
-        # ec2 specific options..
-
-        option.on "--region=REGION", "specify a region" do |region|
-          subcommand_parameters.region = region
-        end
-
-        option.on "--image-id=ID", "AMI image ID" do |image_id|
-          subcommand_parameters.image_id = image_id
-        end
-
-        option.on "--instance-type=TYPE", "instance type" do |instance_type|
-          subcommand_parameters.instance_type = instance_type
-        end
-
-        option.on "--key-name=NAME", "key_name" do |key_name|
-          subcommand_parameters.key_name = key_name
-        end
-
-        option.on "--user-data=DATA", "user data" do |user_data|
-          subcommand_parameters.user_data = user_data
-        end
-
-        option.on "--iam-instance-profile=PROFILE", "the name or ARN of an IAM instance profile. this provides credentials to the ec2 instance(s) via the instance metadata service." do |profile|
-          subcommand_parameters.iam_instance_profile = profile
-        end
-
-        #monitoring_enabled
-        option.on "--monitoring-enabled=BOOLEAN", "" do |boolean|
-          subcommand_parameters.monitoring_enabled = boolean
-        end
-
-        #availability_zone
-        option.on "--availability-zone=ZONE", "" do |zone|
-          subcommand_parameters.availability_zone = zone
-        end
-
-        #security_groups
-        option.on "--security-groups=ARRAY", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #security_group_ids
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #disable_api_termination
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #instance_initiated_shutdown_behavior
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #subnet
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #private_ip_address
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #dedicated_tenancy
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        #ebs_optimized
-        option.on "--=", "" do ||
-          subcommand_parameters. = 
-        end
-
-        # template options..
+        # custom options to help out the user
+        option.separator ""
+        option.separator "    template options:"
+        option.separator ""
 
         option.on "--user-data-template=FILE", "user data template" do |user_data_template|
           subcommand_parameters.user_data_template = user_data_template
         end
 
+        option.separator ""
+
         option.on "--user-data-template-variables=HASH", String, "user data template variables" do |user_data_template_variables|
           subcommand_parameters.user_data_template_variables = user_data_template_variables
         end
 
+        option.separator ""
+
         option.on "--show-parsed-template=BOOLEAN", "display parsed template file" do |show_parsed_template|
           subcommand_parameters.show_parsed_template = show_parsed_template
         end
+
+        option.separator ""
+        option.separator "          long descriptions for these parameters can be found here:\n            http://<TODO>"
+        option.separator ""
+
+        # ec2 specific options that are passed on to ec2 instance..
+
+        option.separator ""
+        option.separator "    ec2 options:"
+        option.separator ""
+
+        option.on "--region=STRING", "region to launch instance in, for example \"us-east-1\"" do |region|
+          subcommand_parameters.region = region
+        end
+
+        option.separator ""
+
+        option.on "--image-id=STRING", "ID of the AMI you want to launch.".downcase do |image_id|
+          subcommand_parameters.image_id = image_id
+        end
+
+        option.separator ""
+
+        option.on "--instance-type=STRING", "The type of instance to launch, for example \"m1.small\".".downcase do |instance_type|
+          subcommand_parameters.instance_type = instance_type
+        end
+
+        option.separator ""
+
+        option.on "--key-name=STRING", "The name of the key pair to use.".downcase do |key_name|
+          subcommand_parameters.key_name = key_name
+        end
+
+        option.separator ""
+
+        option.on "--user-data=STRING", "Arbitrary user data. note: this is merged with user_data_template if also specified.".downcase do |user_data|
+          subcommand_parameters.user_data = user_data
+        end
+
+        option.separator ""
+
+        option.on "--iam-instance-profile=STRING", "the name or ARN of an IAM instance profile.".downcase do |profile|
+          subcommand_parameters.iam_instance_profile = profile
+        end
+
+        option.separator ""
+
+        option.on "--monitoring-enabled=BOOLEAN", "enable CloudWatch monitoring.".downcase do |boolean|
+          subcommand_parameters.monitoring_enabled = boolean
+        end
+
+        option.separator ""
+
+        option.on "--availability-zone=STRING", "availability zone.".downcase do |zone|
+          subcommand_parameters.availability_zone = zone
+        end
+
+        option.separator ""
+
+        option.on "--security-groups=ARRAY", Array, "Security groups. can be a single value or an array of values.\n#{indent}Values should be space deliminated group name strings.".downcase do |groups|
+          subcommand_parameters.security_groups = groups
+        end
+
+        option.separator ""
+
+        option.on "--security-group-ids=ARRAY", Array, "security_group_ids accepts a single ID or an array of\n#{indent}security group IDs.".downcase do |group_ids|
+          subcommand_parameters.security_group_ids = group_ids
+        end
+
+        option.separator ""
+
+        option.on "--disable-api-termination=BOOLEAN", "instance termination via the instance API.".downcase do |api_termination|
+          subcommand_parameters.disable_api_termination = api_termination
+        end
+
+        option.separator ""
+
+        option.on "--instance-initiated-shutdown-behavior=STRING", "instance termination on instance-initiated shutdown".downcase do |shutdown_behavior|
+          subcommand_parameters.instance_initiated_shutdown_behavior = shutdown_behavior
+        end
+
+        option.separator ""
+
+        option.on "--subnet=STRING", "The VPC Subnet (or subnet id string) to launch the instance in.".downcase do |subnet|
+          subcommand_parameters.subnet = subnet
+        end
+
+        option.separator ""
+
+        option.on "--private_ip_address=STRING", "If you're using VPC, you can optionally use this option to assign the\n#{indent}instance a specific available IP address from the subnet (e.g., '10.0.0.25').\n#{indent}This option is not valid for instances launched outside a VPC (i.e.\n#{indent}those launched without the :subnet option).".downcase do |ip|
+          subcommand_parameters.private_ip_address = ip
+        end
+
+        option.separator ""
+
+        option.on "--dedicated-tenancy=BOOLEAN", "Instances with dedicated tenancy will not share physical hardware with\n#{indent}instances outside their VPC. NOTE: Dedicated tenancy incurs an \n#{indent}additional service charge. This option is not valid for\n#{indent}instances launched outside a VPC (e.g.those launched without the :subnet option).".downcase do |tenancy|
+          subcommand_parameters.dedicated_tenancy = tenancy
+        end
+
+        option.separator ""
+
+        option.on "--ebs-optimized=BOOLEAN", "EBS-Optimized instances enable Amazon EC2 instances to fully utilize the\n#{indent}IOPS provisioned on an EBS volume. EBS-optimized instances deliver dedicated\n#{indent}throughput between Amazon EC2 and Amazon EBS, with options between\n#{indent}500 Mbps and 1000 Mbps depending on the instance type used. When attached\n#{indent}to EBS-Optimized instances, Provisioned IOPS volumes are designed to\n#{indent}deliver within 10% of their provisioned performance 99.9% of the time.\n#{indent}NOTE: EBS Optimized instances incur an additional service charge.\n#{indent}This option is only valid for certain instance types.".downcase do |ebs_optimized|
+          subcommand_parameters.ebs_optimized = ebs_optimized
+        end
+
+        option.separator ""
+        option.separator "        long descriptions for these parameters can be found here:\n          http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/InstanceCollection.html"
+        option.separator ""
       end
 
       begin
@@ -296,6 +381,10 @@ module Ec2Control
       longest_key = keys[1][keys[0]][0].length
 
       subcommand_parameters.marshal_dump.each do |key, value|
+
+        next if value.nil?
+        next if String(value).empty?
+
         puts "#{key}:".to_s.ljust(longest_key + 2) + "#{value}" unless value.nil?
       end
 
@@ -470,6 +559,7 @@ module Ec2Control
     $VERBOSE = global_parameters.verbose
 
     config = Config.check(global_parameters, subcommand_parameters)
+
     Config.display(subcommand_parameters)
 
     ## establish what user_data will be passed into the cloud instance
@@ -634,7 +724,26 @@ module Ec2Control
         #  :key_name      => subcommand_parameters.key_name,
         #  :user_data     => user_data,
 
-        ec2_parameters.merge({ :user_data => user_data })
+
+        ec2_parameters = {
+          :image_id                             => subcommand_parameters.image_id,
+          :instance_type                        => subcommand_parameters.instance_type,
+          :key_name                             => subcommand_parameters.key_name,
+          :user_data                            => user_data,
+          :iam_instance_profile                 => subcommand_parameters.iam_instance_profile,
+          :monitoring_enabled                   => subcommand_parameters.monitoring_enabled,
+          :security_groups                      => subcommand_parameters.security_groups,
+          :security_group_ids                   => subcommand_parameters.security_group_ids,
+          :disable_api_termination              => subcommand_parameters.disable_api_termination,
+          :instance_initiated_shutdown_behavior => subcommand_parameters.instance_initiated_shutdown_behavior,
+          :subnet                               => subcommand_parameters.subnet,
+          :private_ip_address                   => subcommand_parameters.private_ip_address,
+          :ebs_optimized                        => subcommand_parameters.ebs_optimized,
+          :availability_zone                    => subcommand_parameters.availability_zone,
+          :dedicated_tenancy                    => subcommand_parameters.dedicated_tenancy,
+        }
+
+        ec2_parameters.delete_if { |key, value| value.nil? }
 
         instance = ec2.instances.create(ec2_parameters)
       rescue => e
@@ -679,6 +788,8 @@ module Ec2Control
       end
     end
   end
+
+  puts
 
   def self.show_instance_details(instance, new_records, hostname, domain)
     puts <<-HEREDOC.strip_heredoc
