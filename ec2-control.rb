@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'lib'))
 
 require 'ec2-control'
+require 'ec2-control/helpers'
 require 'ec2-control/cli_argument_parser'
 require 'ec2-control/config'
 require 'ec2-control/user_data'

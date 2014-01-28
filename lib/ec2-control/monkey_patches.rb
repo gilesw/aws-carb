@@ -84,14 +84,3 @@ module Subcommands
     @commands[name.to_s] = opt
   end
 end
-
-# helpers
-
-def die(message)
-  puts "error: #{message}"
-  exit 1
-end
-
-def debug(message = nil)
-  puts message if $VERBOSE == true
-end
