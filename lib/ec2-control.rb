@@ -27,17 +27,11 @@ include Subcommands
 # Ec2Control::AWS::Route53      - create dns records in route53
 #
 
-
 module Ec2Control
-
-  #
-  # main logic
-  #
-
   def self.run
 
     #
-    # cli argument parsing / config loading
+    # cli argument parsing
     # 
 
     # NOTE: should handle establishing all variables in a hierarchical config, or in seperate structs?
@@ -47,6 +41,10 @@ module Ec2Control
     # parse ARGV - we dont care about the subcommand at this point but we get
     # it for sake of completeness
     global_parameters, subcommand, subcommand_parameters = CliArgumentParser.parse
+
+    #
+    # establish configuration
+    # 
 
     # load YAML as config hash
     config = Config.load_file(global_parameters, subcommand_parameters)

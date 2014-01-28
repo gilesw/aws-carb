@@ -77,12 +77,6 @@ module Ec2Control
         option.separator "    ec2 options:"
         option.separator ""
 
-        option.on "--region=STRING", "region to launch instance in, for example \"us-east-1\"" do |region|
-          subcommand_parameters.region = region
-        end
-
-        option.separator ""
-
         option.on "--image-id=STRING", "ID of the AMI you want to launch.".downcase do |image_id|
           subcommand_parameters.image_id = image_id
         end

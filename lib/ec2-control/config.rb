@@ -10,6 +10,7 @@ require 'active_support/core_ext/string/strip'
 require 'ostruct'
 require 'subcommand'
 require 'colorize'
+require 'singleton'
 
 include Subcommands
 
@@ -27,55 +28,45 @@ include Subcommands
 # Ec2Control::AWS::Route53      - create dns records in route53
 #
 module Ec2Control
-  module Config
-    def self.load_file(global_parameters)
-      begin
-        config = YAML.load_file(global_parameters.config_file)
-      rescue => e
-        puts "# failed to load config file: '#{global_parameters.config_file}'"
-        die e
-      end
+  class Config
+    include Singleton
 
-      return config
+    def initialize
+      @config         = OpenStruct.new
+      @config.ec2     = OpenStruct.new
+      @config.general = OpenStruct.new
+      @config.route53 = OpenStruct.new
+
+      load_file(global_parameters.config_file)
+      load_user_data_template_variables(user_data_template_variables)
+
     end
 
-    def self.check_parsing_of_user_data_template_variables(subcommand_parameters)
-
-      return unless subcommand_parameters.user_data_template_variables
-
+    def self.load_file(config_file)
       begin
-        config = eval(subcommand_parameters.user_data_template_variables)
-
-        raise ArguementError, "could not parse user_data_template_variables: '#{config}'" unless config.class == Hash
+        @config.config_file = YAML.load_file(config_file)
       rescue => e
-        puts "# failed to parse user_data_template_variables, is your string properly quoted?"
+        puts "# failed to load config file: '#{config_file}'"
         die e
       end
-
-      return config
     end
 
+    # for template_variables only..
     def self.load_defaults_from_config_file(config, subcommand_parameters)
 
       # NOTE: not all 'subcommand parameters' are ec2 parameters - a few of them are used elsewhere.
 
       # presedence of config values is as follows:
       # 
-      # application default < config file < command line argument
+      # config file[common] < config file [specific] < command line argument
       #
       # unfortunately we start off with a struct full of command line argument values since the config
       # file location isnt finalised until after the cli args have been parsed.
 
-      # some sensible defaults..
-      subcommand_parameters.region                               = "us-east-1"
-      subcommand_parameters.show_parsed_template                 = false
-      subcommand_parameters.image_id                             = "ami-a73264ce" # 64bit ubuntu precise
-      subcommand_parameters.instance_type                        = "t1.micro"
-
-      general_parameters = [ :region, :user_data_template, :user_data_template_variables, :show_parsed_template ]
+      general_parameters = [ :user_data_template, :user_data_template_variables, :show_parsed_template ]
 
       general_parameters.each do |parameter|
-        subcommand_parameters.method(parameter) = config['general'][parameter.to_s] if config['general']
+        @config.general.method(parameter) = config['general'][parameter.to_s] if config['general'] and config['general'][parameter.to_s]
       end
 
       ec2_available_parameters = [
@@ -86,7 +77,7 @@ module Ec2Control
       ]
 
       ec2_available_parameters.each do |parameter|
-        subcommand_parameters.method(parameter) = config['ec2'][parameter.to_s] if config['ec2']
+        @config.ec2.method(parameter) = config['ec2'][parameter.to_s] if config['ec2'] and config['ec2'][parameter.to_s]
       end
 
       # FIXME
@@ -121,7 +112,6 @@ module Ec2Control
       }
 
       ec2_parameters.delete_if { |key, value| value.nil? }
-
 
       return ec2_parameters, general_parameters
     end
@@ -184,6 +174,25 @@ module Ec2Control
       }
 
       return hostname, domain, new_records
+    end
+
+    # we somewhat stupidly have the option of parsing in a hash of variables that can be used in our user_data_template
+    # this method tests to see if the parameters value successfully evaluates to a hash
+    # NOTE: perhaps this would be better if it were a set of key:values..
+    def self.load_user_data_template_variables(user_data_template_variables)
+
+      return unless user_data_template_variables
+
+      begin
+        config = eval(user_data_template_variables)
+
+        raise ArguementError, "could not parse user_data_template_variables: '#{user_data_template_variables}'" unless config.class == Hash
+
+        @config.user_data_template_variables = config
+      rescue => e
+        puts "# failed to parse user_data_template_variables, is your string properly quoted?"
+        die e
+      end
     end
 
     # variables to be used in your template can come from the following places:
