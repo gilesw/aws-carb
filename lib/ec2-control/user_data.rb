@@ -1,43 +1,45 @@
 #!/usr/bin/env ruby
 
 module Ec2Control
-  module UserData
-    def self.resolve_template(erb, user_data_template_variables_merged)
+  class UserData
+
+    include Singleton
+
+    attr_accessor :combined_user_data
+
+    def create(config)
+      user_data_template_resolved = resolve_template(config)
+      @combined_user_data         = combine_user_data(config, user_data_template_resolved)
+    end
+
+    def resolve_template(config)
+      # FIXME: blank templates / empty templates / no template should work..
       begin
-        return erb.result(user_data_template_variables_merged)
+        return nil unless config[:ec2] and config[:user_data_template]
+
+        template = Erubis::Eruby.new(File.read(config[:user_data_template][:file]))
+
+        return template.result(config[:user_data_template_variables])
       rescue => e
         puts "# failed to resolve variables in user_data_template:"
         die e
       end
     end
 
-    def self.show_parsed_template(subcommand_parameters, user_data_template_resolved)
-
-      return unless subcommand_parameters.show_parsed_template
-
-      puts "# --- beginning of parsed user_data_template ---"
-      puts
-      begin
-        puts user_data_template_resolved
-      rescue => e
-        puts "error: could not display parsed template!"
-        puts e
-      end
-      puts
-      puts "# --- end of parsed user_data_template ---"
-      puts
-    end
-
-    def self.combine_user_data(subcommand_parameters, user_data_template_resolved)
+    def combine_user_data(config, user_data_template_resolved)
 
       # if user_data_template and user_data are supplied then combine them, otherwise just
       # use user_data (which is empty by default)
       begin
-        if ! user_data_template_resolved.nil? and ! subcommand_parameters.user_data.nil?
+        if config[:ec2] and config[:ec2][:user_data]
+          user_data = config[:ec2][:user_data]
+        end
+
+        if ! user_data_template_resolved.nil? and ! user_data.nil?
           puts "# combining user_data with user_data_template"
-          user_data = user_data_template_resolved + subcommand_parameters.user_data
+          user_data = user_data_template_resolved + user_data
           puts
-        elsif ! user_data_template_resolved.nil? and subcommand_parameters.user_data.nil?
+        elsif ! user_data_template_resolved.nil? and user_data.nil?
           debug "# no raw user_data parsed in"
           user_data = user_data_template_resolved
           debug
@@ -46,9 +48,8 @@ module Ec2Control
           user_data = ""
           debug
         else
-          puts "# using user_data from cli argument"
-          user_data = subcommand_parameters.user_data
-          puts
+          debug "# using user_data from cli argument"
+          debug
         end
 
       rescue => e
@@ -57,6 +58,22 @@ module Ec2Control
       end
 
       return user_data
+    end
+
+    def display
+      return if @combined_user_data.nil?
+
+      puts "# --- beginning of user_data ---"
+      puts
+      begin
+        puts @combined_user_data
+      rescue => e
+        puts "error: could not display user_data!"
+        puts e
+      end
+      puts
+      puts "# --- end of user_data ---"
+      puts
     end
   end
 end

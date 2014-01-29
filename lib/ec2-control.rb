@@ -29,17 +29,41 @@ require 'singleton'
 
 module Ec2Control
   def self.run
-    # parse arguments
+
+    #
+    # configuration
+    #
+
+    # parse cli args
     cli_arguments = CliArgumentParser.parse
 
     # create a configuration based on our various data sources..
-
-    # instance replaces 'new' method for singleton class..
     @config = Config.instance
-
     @config.create(cli_arguments)
-
     @config.display if $VERBOSE
+
+    # load erb template and parse the template with user_data_template_variables
+    # then merge user_data template with raw user_data (if provided) -
+    # end up single user_data ready to pass into ec2 instance..
+    @user_data = UserData.instance
+    @user_data.create(@config)
+    @user_data.display if $VERBOSE or @config[:show_parsed_template]
+
+    exit
+
+    #
+    # aws interaction
+    # 
+
+    # NOTE: create ec2 instance with DNS
+
+    ## initialize AWS object with credentials from config file
+    initialize_aws_with_credentials(@config)
+
+    ## initialize ec2 object with credentials
+    ec2 = AWS.initialize_ec2_instance(config, subcommand_parameters)
+
+    instance = create_instance(config, ec2, subcommand_parameters, user_data)
 
     # FIXME: add to route53 stuff..
 
@@ -49,38 +73,6 @@ module Ec2Control
     #  :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
     #  :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
     #}
-
-    # NOTE: establish the user_data
-    # NOTE: open template, resolve template, JOIN template with user_data..
-
-    ## establish what user_data will be passed into the cloud instance
-    # user_data = UserData.configure_user_data(config, subcommand_parameters)
-
-    if subcommand_parameters.user_data_template_variables
-      user_data_template_resolved = resolve_template(erb, merged_user_data_template_variables)
-    end
-
-    show_parsed_template(subcommand_parameters, user_data_template_resolved)
-
-    user_data = combine_user_data(subcommand_parameters, user_data_template_resolved)
-
-    #
-    # ec2 / route53
-    # 
-
-    # NOTE: create ec2 instance with DNS
-
-    ## initialize AWS object with credentials from config file
-    initialize_aws_with_credentials(config)
-
-    ## initialize ec2 object with credentials
-    ec2 = initialize_ec2_instance(config, subcommand_parameters)
-
-
-    ## check whether DNS records already exist..
-    record_sets = check_hostname_and_domain_availability(config, hostname, domain, new_records)
-
-    instance = create_instance(config, ec2, subcommand_parameters, user_data)
 
     update_route53(instance, config, hostname, domain, new_records, record_sets)
 

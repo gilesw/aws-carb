@@ -11,8 +11,8 @@ module Ec2Control
       cli_arguments                               = OpenStruct.new
       cli_arguments.global                        = OpenStruct.new
       cli_arguments.subcommand                    = OpenStruct.new
-      cli_arguments.subcommand.config_overrides   = OpenStruct.new
       cli_arguments.subcommand.user_data_template = OpenStruct.new
+      cli_arguments.subcommand.config_overrides   = OpenStruct.new
       cli_arguments.subcommand.ec2                = OpenStruct.new
       cli_arguments.subcommand.route53            = OpenStruct.new
 
@@ -82,7 +82,7 @@ module Ec2Control
         option.separator ""
 
         option.on "--user-data-template=FILE", "user data template" do |user_data_template|
-          cli_arguments.subcommand.user_data_template.user_data_template = user_data_template
+          cli_arguments.subcommand.user_data_template.file = user_data_template
         end
 
         option.separator ""

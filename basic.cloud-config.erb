@@ -2,12 +2,12 @@
 
 # the above line is required by cloud init
 
-<% if defined?(hostname) %>
+<%- if defined?(hostname) %>
 hostname: <%= hostname %>
 fqdn: <%= hostname -%>.<%= domain %>
 <% end %>
 
-<% if defined?(ssh_keys) %>
+<%- if defined?(ssh_keys) %>
 ssh_authorized_keys:
   <% ssh_keys.each do |key| %>
   - <%= key %>

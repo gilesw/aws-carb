@@ -17,20 +17,24 @@ module Ec2Control
 
     def merge_cli_arguments_with_config(cli_arguments)
       begin
+
+        config_sections = [:common, :general, :ec2, :route53, :user_data_template_variables, :user_data_template]
+        # all sections share 'common' variables..
+        config_sections.each do |section|
+          @config[section] ||= {}
+          @config[section].merge! @config[:common]
+        end
+
         # merge the config overrides hashes into config
         if cli_arguments.subcommand.config_overrides
           cli_arguments.subcommand.config_overrides.marshal_dump.each do |key, value|
-            if @config[key] and cli_arguments.subcommand.config_overrides.send(key)
-              @config[key].merge! cli_arguments.subcommand.config_overrides.send(key)
-            end
+            @config[key].merge! cli_arguments.subcommand.config_overrides.send(key)
           end
         end
 
-        config_sections = [:common, :general, :ec2, :route53, :user_data_template_variables]
-
         # merge the convenience arguments..
         config_sections.each do |section|
-          if @config[section] and cli_arguments.subcommand.send(section.to_s)
+          if cli_arguments.subcommand.send(section.to_s)
             @config[section].merge! cli_arguments.subcommand.send(section.to_s).marshal_dump
           end
         end
@@ -69,7 +73,7 @@ module Ec2Control
       return nil
     end
 
-    def [](key, context)
+    def [](key)
       @config[key]
     end
 
@@ -126,6 +130,7 @@ module Ec2Control
     def display
       puts "# config:"
       ap @config
+      puts
     end
   end
 end
