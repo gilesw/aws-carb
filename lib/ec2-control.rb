@@ -10,8 +10,10 @@ require 'active_support/core_ext/string/strip'
 require 'ostruct'
 require 'subcommand'
 require 'colorize'
+require 'singleton'
 
 include Subcommands
+include Singleton
 
 # * list stuff
 # * terminate stuff

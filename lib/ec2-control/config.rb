@@ -1,33 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'aws-sdk'
-require 'yaml'
-require 'erubis'
-require 'awesome_print'
-require 'securerandom'
-require 'shell-spinner'
-require 'active_support/core_ext/string/strip'
-require 'active_support/core_ext/hash/keys'
-require 'ostruct'
-require 'subcommand'
-require 'colorize'
-require 'singleton'
-
-include Subcommands
-
-# * list stuff
-# * terminate stuff
-# * turn off spinner if not a tty?
-
-# module is broken up into:
-#
-# Ec2Control.*                  - main methods
-# Ec2Control::CliArugmentParser - argument parsing
-# Ec2Control::Config            - argument checking / config checking
-# Ec2Control::UserData          - parse user data template and possibly combine with user_data cli arg
-# Ec2Control::AWS::Ec2          - build an ec2 instance
-# Ec2Control::AWS::Route53      - create dns records in route53
-#
 module Ec2Control
   class Config
     include Singleton
