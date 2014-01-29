@@ -40,22 +40,26 @@ module Ec2Control
 
     # parse ARGV - we dont care about the subcommand at this point but we get
     # it for sake of completeness
-    global_parameters, subcommand, subcommand_parameters = CliArgumentParser.parse
+
+    #global_parameters, subcommand, subcommand_parameters = CliArgumentParser.parse
 
     #
     # establish configuration
     # 
 
     # load YAML as config hash
+
     config = Config.load_file(global_parameters, subcommand_parameters)
 
     # for any variables not set using CLI args, load their settings from config file..
     # it's not possible to load defaults before parsing arguments because at that
     # point we dont know the path to the config file (if it varies from the app default)
-    ec2_parameters = Config.load_defaults_from_config_file(config, subcommand_parameters)
+
+    #ec2_parameters = Config.load_defaults_from_config_file(config, subcommand_parameters)
 
     # check to see if user_data_template_variables is a valid hash..
-    Config.check_parsing_of_user_data_template_variables(subcommand_parameters)
+
+    #Config.check_parsing_of_user_data_template_variables(subcommand_parameters)
 
     Config.display(subcommand_parameters)
 

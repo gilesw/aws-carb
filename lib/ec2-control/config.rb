@@ -31,90 +31,131 @@ module Ec2Control
   class Config
     include Singleton
 
+    attr_reader :config
+
     def initialize
-      @config         = OpenStruct.new
-      @config.ec2     = OpenStruct.new
-      @config.general = OpenStruct.new
-      @config.route53 = OpenStruct.new
+
+      #
+      # cli argument parsing
+      # 
+
+      # NOTE: should handle establishing all variables in a hierarchical config, or in seperate structs?
+
+      # debug (verbose) messages are not used until UserData point, and beyond
+
+      # parse ARGV - we dont care about the subcommand at this point but we get
+      # it for sake of completeness
+
+      #global_parameters, subcommand, subcommand_parameters = CliArgumentParser.parse
+
+      #
+      # establish configuration
+      # 
+
+      # load YAML as config hash
+
+      @config = Config.load_file('config.yaml')
+        #(global_parameters, subcommand_parameters)
+
+      # for any variables not set using CLI args, load their settings from config file..
+      # it's not possible to load defaults before parsing arguments because at that
+      # point we dont know the path to the config file (if it varies from the app default)
+
+      #ec2_parameters = Config.load_defaults_from_config_file(config, subcommand_parameters)
+
+      # check to see if user_data_template_variables is a valid hash..
+
+      #Config.check_parsing_of_user_data_template_variables(subcommand_parameters)
+
+      #Config.display(subcommand_parameters)
+
+      ## check whether hostname and domain were specified by the user or are in the config file
+      hostname, domain, new_records = establish_hostname_and_domain(config, subcommand_parameters)
 
       load_file(global_parameters.config_file)
       load_user_data_template_variables(user_data_template_variables)
-
     end
 
-    def self.load_file(config_file)
+    def load_file(config_file)
       begin
-        @config.config_file = YAML.load_file(config_file)
+        @config = YAML.load_file(config_file)
       rescue => e
         puts "# failed to load config file: '#{config_file}'"
         die e
       end
     end
 
-    # for template_variables only..
-    def self.load_defaults_from_config_file(config, subcommand_parameters)
-
-      # NOTE: not all 'subcommand parameters' are ec2 parameters - a few of them are used elsewhere.
-
-      # presedence of config values is as follows:
-      # 
-      # config file[common] < config file [specific] < command line argument
-      #
-      # unfortunately we start off with a struct full of command line argument values since the config
-      # file location isnt finalised until after the cli args have been parsed.
-
-      general_parameters = [ :user_data_template, :user_data_template_variables, :show_parsed_template ]
-
-      general_parameters.each do |parameter|
-        @config.general.method(parameter) = config['general'][parameter.to_s] if config['general'] and config['general'][parameter.to_s]
-      end
-
-      ec2_available_parameters = [
-        :image_id, :instance_type, :key_name, :user_data, :iam_instance_profile,
-        :availability_zone, :security_group_ids, :subnet, :private_ip_address,
-        :dedicated_tenancy, :disable_api_termination, :instance_initiated_shutdown_behavior,
-        :ebs_optimized, :monitoring_enabled
-      ]
-
-      ec2_available_parameters.each do |parameter|
-        @config.ec2.method(parameter) = config['ec2'][parameter.to_s] if config['ec2'] and config['ec2'][parameter.to_s]
-      end
-
-      # FIXME
-      #
-      # http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/InstanceCollection.html
-      #
-      # ec2_params = {}
-      #ec2_parameters.each do |key, value|
-      #  ec2_params[key.to_sym] = value
-      #end
-      #  :image_id      => subcommand_parameters.image_id,
-      #  :instance_type => subcommand_parameters.instance_type,
-      #  :key_name      => subcommand_parameters.key_name,
-      #  :user_data     => user_data,
-
-      ec2_parameters = {
-        :image_id                             => subcommand_parameters.image_id,
-        :instance_type                        => subcommand_parameters.instance_type,
-        :key_name                             => subcommand_parameters.key_name,
-        :user_data                            => user_data,
-        :iam_instance_profile                 => subcommand_parameters.iam_instance_profile,
-        :monitoring_enabled                   => subcommand_parameters.monitoring_enabled,
-        :security_groups                      => subcommand_parameters.security_groups,
-        :security_group_ids                   => subcommand_parameters.security_group_ids,
-        :disable_api_termination              => subcommand_parameters.disable_api_termination,
-        :instance_initiated_shutdown_behavior => subcommand_parameters.instance_initiated_shutdown_behavior,
-        :subnet                               => subcommand_parameters.subnet,
-        :private_ip_address                   => subcommand_parameters.private_ip_address,
-        :ebs_optimized                        => subcommand_parameters.ebs_optimized,
-        :availability_zone                    => subcommand_parameters.availability_zone,
-        :dedicated_tenancy                    => subcommand_parameters.dedicated_tenancy,
-      }
-
-      ec2_parameters.delete_if { |key, value| value.nil? }
-
-      return ec2_parameters, general_parameters
+    def [](key, context)
+      #return @arguments[context][key] if @arguments[context] and @arguments[context].has_key?(key)
+      return @config[context][key] if @config[context] and @config[context].has_key?(key)
+      return @config['common'][key] if @config['common'] and @config['common'].has_key?(key)
+      raise "could not find config option: '#{key}' in context: '#{context}'"
     end
+
+#    # for template_variables only..
+#    def self.load_defaults_from_config_file(config, subcommand_parameters)
+#
+#      # NOTE: not all 'subcommand parameters' are ec2 parameters - a few of them are used elsewhere.
+#
+#      # presedence of config values is as follows:
+#      # 
+#      # config file[common] < config file [specific] < command line argument
+#      #
+#      # unfortunately we start off with a struct full of command line argument values since the config
+#      # file location isnt finalised until after the cli args have been parsed.
+#
+#      general_parameters = [ :user_data_template, :user_data_template_variables, :show_parsed_template ]
+#
+#      general_parameters.each do |parameter|
+#        @config.general.method(parameter) = config['general'][parameter.to_s] if config['general'] and config['general'][parameter.to_s]
+#      end
+#
+#      ec2_available_parameters = [
+#        :image_id, :instance_type, :key_name, :user_data, :iam_instance_profile,
+#        :availability_zone, :security_group_ids, :subnet, :private_ip_address,
+#        :dedicated_tenancy, :disable_api_termination, :instance_initiated_shutdown_behavior,
+#        :ebs_optimized, :monitoring_enabled
+#      ]
+#
+#      ec2_available_parameters.each do |parameter|
+#        @config.ec2.method(parameter) = config['ec2'][parameter.to_s] if config['ec2'] and config['ec2'][parameter.to_s]
+#      end
+#
+#      # FIXME
+#      #
+#      # http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/InstanceCollection.html
+#      #
+#      # ec2_params = {}
+#      #ec2_parameters.each do |key, value|
+#      #  ec2_params[key.to_sym] = value
+#      #end
+#      #  :image_id      => subcommand_parameters.image_id,
+#      #  :instance_type => subcommand_parameters.instance_type,
+#      #  :key_name      => subcommand_parameters.key_name,
+#      #  :user_data     => user_data,
+#
+#      ec2_parameters = {
+#        :image_id                             => subcommand_parameters.image_id,
+#        :instance_type                        => subcommand_parameters.instance_type,
+#        :key_name                             => subcommand_parameters.key_name,
+#        :user_data                            => user_data,
+#        :iam_instance_profile                 => subcommand_parameters.iam_instance_profile,
+#        :monitoring_enabled                   => subcommand_parameters.monitoring_enabled,
+#        :security_groups                      => subcommand_parameters.security_groups,
+#        :security_group_ids                   => subcommand_parameters.security_group_ids,
+#        :disable_api_termination              => subcommand_parameters.disable_api_termination,
+#        :instance_initiated_shutdown_behavior => subcommand_parameters.instance_initiated_shutdown_behavior,
+#        :subnet                               => subcommand_parameters.subnet,
+#        :private_ip_address                   => subcommand_parameters.private_ip_address,
+#        :ebs_optimized                        => subcommand_parameters.ebs_optimized,
+#        :availability_zone                    => subcommand_parameters.availability_zone,
+#        :dedicated_tenancy                    => subcommand_parameters.dedicated_tenancy,
+#      }
+#
+#      ec2_parameters.delete_if { |key, value| value.nil? }
+#
+#      return ec2_parameters, general_parameters
+#    end
 
     # try and work out the hostname, presidence is:
     #

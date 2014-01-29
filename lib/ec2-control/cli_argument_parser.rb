@@ -39,6 +39,7 @@ module Ec2Control
       #add_help_option
 
       indent = ' ' * 55
+
       command :create do |option|
         option.banner      = "\n\n                      amazon web services - ec2 control program\n\nusage:\n\n    #{File.basename($0)} create [options]\n"
         option.description = "create an ec2 instance"
