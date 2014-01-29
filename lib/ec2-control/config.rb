@@ -17,20 +17,21 @@ module Ec2Control
 
     def merge_cli_arguments_with_config(cli_arguments)
       begin
+        # merge the config overrides hashes into config
         if cli_arguments.subcommand.config_overrides
-          # merge the config overrides into config
           cli_arguments.subcommand.config_overrides.marshal_dump.each do |key, value|
-            if @config[key] and cli_arguments.subcommand.config_overrides.send("#{key}_variables")
-              @config[key].merge cli_arguments.subcommand.config_overrides.send("#{key}_variables")
+            if @config[key] and cli_arguments.subcommand.config_overrides.send(key)
+              @config[key].merge! cli_arguments.subcommand.config_overrides.send(key)
             end
           end
         end
 
         config_sections = [:common, :general, :ec2, :route53, :user_data_template_variables]
 
+        # merge the convenience arguments..
         config_sections.each do |section|
           if @config[section] and cli_arguments.subcommand.send(section.to_s)
-            @config[section].merge cli_arguments.subcommand.send(section.to_s).marshal_dump
+            @config[section].merge! cli_arguments.subcommand.send(section.to_s).marshal_dump
           end
         end
 
@@ -84,10 +85,10 @@ module Ec2Control
 
         hostname, domain = nil
 
-        hostname = find_with_context(:hostname, :user_data_template_variables)
-        domain   = find_with_context(:domain,   :user_data_template_variables)
-        hostname = find_with_context(:hostname, :route53)
-        domain   = find_with_context(:domain, :route53)
+        hostname = find_with_context(:hostname, :user_data_template_variables) unless find_with_context(:hostname, :user_data_template_variables).nil?
+        domain   = find_with_context(:domain,   :user_data_template_variables) unless find_with_context(:domain,   :user_data_template_variables).nil?
+        hostname = find_with_context(:hostname, :route53)                      unless find_with_context(:hostname, :route53).nil?
+        domain   = find_with_context(:domain, :route53)                        unless find_with_context(:domain, :route53).nil?
 
         help = <<-HEREDOC.strip_heredoc
           #       
@@ -103,32 +104,28 @@ module Ec2Control
         if domain.nil? and hostname.nil?
           debug "# WARNING: hostname and domain not found"
           debug help
+          debug
         elsif domain and hostname.nil?
           debug "# WARNING: hostname not found"
           debug help
+          debug
         elsif domain.nil? and hostname
           debug "# WARNING: domain not found"
           debug help
+          debug
         else
           debug "# found hostname and domain:"
           debug "hostname: #{hostname}"
           debug "domain:   #{domain}"
           debug
-
-          @config[:new_records] = {
-            :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-            :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
-          }
         end
-
-        puts
       end
     end
 
 
     def display
       puts "# config:"
-      puts @config
+      ap @config
     end
   end
 end

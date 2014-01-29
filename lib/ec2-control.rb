@@ -32,31 +32,29 @@ module Ec2Control
     # parse arguments
     cli_arguments = CliArgumentParser.parse
 
+    # create a configuration based on our various data sources..
+
     # instance replaces 'new' method for singleton class..
     @config = Config.instance
 
     @config.create(cli_arguments)
 
     @config.display if $VERBOSE
-    exit
 
-    ## check whether hostname and domain were specified by the user or are in the config file
-    hostname, domain, new_records = establish_hostname_and_domain(config, subcommand_parameters)
+    # FIXME: add to route53 stuff..
 
-    #
-    # UserData handling
-    # 
+    #@config[:route53] ||= {}
+
+    #@config[:route53][:new_dns_records] = {
+    #  :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
+    #  :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+    #}
 
     # NOTE: establish the user_data
     # NOTE: open template, resolve template, JOIN template with user_data..
 
-    # decide whether to be verbose based on cli args or default in-app setting
-    $VERBOSE = global_parameters.verbose
-
     ## establish what user_data will be passed into the cloud instance
     # user_data = UserData.configure_user_data(config, subcommand_parameters)
-
-    erb, merged_user_data_template_variables = merge_variables_for_user_data_template(config, subcommand_parameters)
 
     if subcommand_parameters.user_data_template_variables
       user_data_template_resolved = resolve_template(erb, merged_user_data_template_variables)
