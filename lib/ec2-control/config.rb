@@ -7,6 +7,7 @@ require 'awesome_print'
 require 'securerandom'
 require 'shell-spinner'
 require 'active_support/core_ext/string/strip'
+require 'active_support/core_ext/hash/keys'
 require 'ostruct'
 require 'subcommand'
 require 'colorize'
@@ -33,129 +34,66 @@ module Ec2Control
 
     attr_reader :config
 
-    def initialize
+    def initialize(cli_arguments)
 
-      #
-      # cli argument parsing
-      # 
+      @config = Config.load_file(cli_arguments.global.config_file)
 
-      # NOTE: should handle establishing all variables in a hierarchical config, or in seperate structs?
+      merge_cli_arguments_with_config
 
-      # debug (verbose) messages are not used until UserData point, and beyond
-
-      # parse ARGV - we dont care about the subcommand at this point but we get
-      # it for sake of completeness
-
-      #global_parameters, subcommand, subcommand_parameters = CliArgumentParser.parse
-
-      #
-      # establish configuration
-      # 
-
-      # load YAML as config hash
-
-      @config = Config.load_file('config.yaml')
-        #(global_parameters, subcommand_parameters)
-
-      # for any variables not set using CLI args, load their settings from config file..
-      # it's not possible to load defaults before parsing arguments because at that
-      # point we dont know the path to the config file (if it varies from the app default)
-
-      #ec2_parameters = Config.load_defaults_from_config_file(config, subcommand_parameters)
-
-      # check to see if user_data_template_variables is a valid hash..
-
-      #Config.check_parsing_of_user_data_template_variables(subcommand_parameters)
-
-      #Config.display(subcommand_parameters)
-
-      ## check whether hostname and domain were specified by the user or are in the config file
-      hostname, domain, new_records = establish_hostname_and_domain(config, subcommand_parameters)
-
-      load_file(global_parameters.config_file)
-      load_user_data_template_variables(user_data_template_variables)
+      establish_hostname_and_domain
     end
 
-    def load_file(config_file)
+    def merge_cli_arguments_with_config
       begin
-        @config = YAML.load_file(config_file)
+
+        # merge the config overrides into config
+        cli_arguments.subcommand.config_overrides.marshal_dump.each do |key, value|
+          if @config.send(key.to_s)
+            @config.send(key.to_s).merge cli_arguements.subcommand.config_overrides.send("#{key}_variables")
+          end
+        end
+
+        # merge the convenience argument parameters with config
+        @config.common.merge                       cli_arguements.subcommand.common.marshal_dump
+        @config.general.merge                      cli_arguements.subcommand.general.marshal_dump
+        @config.ec2.merge                          cli_arguements.subcommand.ec2.marshal_dump
+        @config.route53.merge                      cli_arguements.subcommand.route53.marshal_dump
+        @config.user_data_template_variables.merge cli_arguements.subcommand.user_data_template_variables.marshal_dump
+
+      rescue => e
+        puts "# failed to merge override hash for: #{key}"
+        die e
+      end
+    end
+
+    def load_file(cli_argument_config_file)
+
+      if cli_argument_config_file
+        config_file = cli_argument_config_file
+      else
+        config_file = 'config.yaml'
+      end
+
+      begin
+        # make keys symbols so we can more easily merge with cli arg structs..
+        @config = YAML.load_file(config_file).deep_symbolize_keys
       rescue => e
         puts "# failed to load config file: '#{config_file}'"
         die e
       end
     end
 
-    def [](key, context)
-      #return @arguments[context][key] if @arguments[context] and @arguments[context].has_key?(key)
-      return @config[context][key] if @config[context] and @config[context].has_key?(key)
-      return @config['common'][key] if @config['common'] and @config['common'].has_key?(key)
-      raise "could not find config option: '#{key}' in context: '#{context}'"
+    # when looking for a key, check 'common' section first, then override if a value
+    # in the supplied context is found..
+    def find_with_context(key, context) 
+      return @config.send(context)[key] if @config.send(context)[key]
+      return @config.common[key]        if @config.common[key]
+      return nil
     end
 
-#    # for template_variables only..
-#    def self.load_defaults_from_config_file(config, subcommand_parameters)
-#
-#      # NOTE: not all 'subcommand parameters' are ec2 parameters - a few of them are used elsewhere.
-#
-#      # presedence of config values is as follows:
-#      # 
-#      # config file[common] < config file [specific] < command line argument
-#      #
-#      # unfortunately we start off with a struct full of command line argument values since the config
-#      # file location isnt finalised until after the cli args have been parsed.
-#
-#      general_parameters = [ :user_data_template, :user_data_template_variables, :show_parsed_template ]
-#
-#      general_parameters.each do |parameter|
-#        @config.general.method(parameter) = config['general'][parameter.to_s] if config['general'] and config['general'][parameter.to_s]
-#      end
-#
-#      ec2_available_parameters = [
-#        :image_id, :instance_type, :key_name, :user_data, :iam_instance_profile,
-#        :availability_zone, :security_group_ids, :subnet, :private_ip_address,
-#        :dedicated_tenancy, :disable_api_termination, :instance_initiated_shutdown_behavior,
-#        :ebs_optimized, :monitoring_enabled
-#      ]
-#
-#      ec2_available_parameters.each do |parameter|
-#        @config.ec2.method(parameter) = config['ec2'][parameter.to_s] if config['ec2'] and config['ec2'][parameter.to_s]
-#      end
-#
-#      # FIXME
-#      #
-#      # http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/InstanceCollection.html
-#      #
-#      # ec2_params = {}
-#      #ec2_parameters.each do |key, value|
-#      #  ec2_params[key.to_sym] = value
-#      #end
-#      #  :image_id      => subcommand_parameters.image_id,
-#      #  :instance_type => subcommand_parameters.instance_type,
-#      #  :key_name      => subcommand_parameters.key_name,
-#      #  :user_data     => user_data,
-#
-#      ec2_parameters = {
-#        :image_id                             => subcommand_parameters.image_id,
-#        :instance_type                        => subcommand_parameters.instance_type,
-#        :key_name                             => subcommand_parameters.key_name,
-#        :user_data                            => user_data,
-#        :iam_instance_profile                 => subcommand_parameters.iam_instance_profile,
-#        :monitoring_enabled                   => subcommand_parameters.monitoring_enabled,
-#        :security_groups                      => subcommand_parameters.security_groups,
-#        :security_group_ids                   => subcommand_parameters.security_group_ids,
-#        :disable_api_termination              => subcommand_parameters.disable_api_termination,
-#        :instance_initiated_shutdown_behavior => subcommand_parameters.instance_initiated_shutdown_behavior,
-#        :subnet                               => subcommand_parameters.subnet,
-#        :private_ip_address                   => subcommand_parameters.private_ip_address,
-#        :ebs_optimized                        => subcommand_parameters.ebs_optimized,
-#        :availability_zone                    => subcommand_parameters.availability_zone,
-#        :dedicated_tenancy                    => subcommand_parameters.dedicated_tenancy,
-#      }
-#
-#      ec2_parameters.delete_if { |key, value| value.nil? }
-#
-#      return ec2_parameters, general_parameters
-#    end
+    def [](key, context)
+      @config[key]
+    end
 
     # try and work out the hostname, presidence is:
     #
@@ -169,150 +107,46 @@ module Ec2Control
       hostname, domain = nil
 
       ShellSpinner "# checking whether hostname and domain have been set", false do
-        if config['common']
-          hostname = config['common']['hostname'] if config['common']['hostname']
-          domain   = config['common']['domain']   if config['common']['domain']
+
+        hostname = @config.find_with_context(:hostname, :user_data_template_variables)
+        domain   = @config.find_with_context(:domain,   :user_data_template_variables)
+        hostname = @config.find_with_context(:hostname, :route53)
+        domain   = @config.find_with_context(:domain, :route53)
+
+        help = <<-HEREDOC.strip_heredoc
+          #       
+          #         checked:
+          #          'common', 'user_data_template_variables',
+          #          and 'route53' sections of config
+          #          --common-variables, --route53-variables,
+          #          and --user-data-template-variables
+          #
+          #          route53 dynamic DNS will not be updated!
+        HEREDOC
+
+        if domain.nil? and hostname.nil?
+          debug "# WARNING: hostname and domain not found"
+          debug help
+        elsif domain and hostname.nil?
+          debug "# WARNING: hostname not found"
+          debug help
+        elsif domain.nil? and hostname
+          debug "# WARNING: domain not found"
+          debug help
+        else
+          debug "# found hostname and domain:"
+          debug "hostname: #{hostname}"
+          debug "domain:   #{domain}"
+          debug
+
+          @config.new_records = {
+            :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
+            :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+          }
         end
-
-        if config['route53']
-          hostname = config['route53']['hostname'] if config['route53']['hostname']
-          domain   = config['route53']['domain']   if config['route53']['domain']
-        end
-
-        if subcommand_parameters.user_data_template_variables
-          user_data_template_variables = eval(subcommand_parameters.user_data_template_variables)
-
-          hostname = user_data_template_variables[:hostname] unless user_data_template_variables[:hostname].nil?
-          domain   = user_data_template_variables[:domain]   unless user_data_template_variables[:domain].nil?
-        end
-      end
-
-      puts
-
-      if domain.nil? and hostname.nil?
-        debug "# WARNING: hostname and domain not found in config file and/or user_data_template_arguments"
-        debug "#          route53 dynamic DNS will not be updated!"
-        debug
-      elsif domain and hostname.nil?
-        debug "# WARNING: hostname not found in config file or user_data_template_arguments."
-        debug "#          a random hostname will be picked for your instance and route53"
-        debug "#          dynamic dns will not be updated"
-        debug
-      elsif domain.nil? and hostname
-        debug "# WARNING: domain not found in config file or user_data_template_arguments."
-        debug "#          route53 dynamic dns will not be updated"
-        debug
-      else
-        debug "# found hostname and domain:"
-        debug "hostname: #{hostname}"
-        debug "domain:   #{domain}"
-        debug
-      end
-
-      new_records = {
-        :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-        :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
-      }
-
-      return hostname, domain, new_records
-    end
-
-    # we somewhat stupidly have the option of parsing in a hash of variables that can be used in our user_data_template
-    # this method tests to see if the parameters value successfully evaluates to a hash
-    # NOTE: perhaps this would be better if it were a set of key:values..
-    def self.load_user_data_template_variables(user_data_template_variables)
-
-      return unless user_data_template_variables
-
-      begin
-        config = eval(user_data_template_variables)
-
-        raise ArguementError, "could not parse user_data_template_variables: '#{user_data_template_variables}'" unless config.class == Hash
-
-        @config.user_data_template_variables = config
-      rescue => e
-        puts "# failed to parse user_data_template_variables, is your string properly quoted?"
-        die e
       end
     end
 
-    # variables to be used in your template can come from the following places:
-    # 
-    #  * config file: 'common' section
-    #  * config file: 'template_variables:' section
-    #  * cli args:     'user_data_template_variables'
-    # 
-    # in terms of precedence, the following applies:
-    # 
-    #   common < template_variables < user_data_template_variables
-    # 
-    def self.merge_variables_for_user_data_template(config, subcommand_parameters)
-      if subcommand_parameters.user_data_template.nil?
-        debug "# no user_data_template specified"
-        debug
-        return
-      else
-        debug "# user_data_template specified"
-        debug
-      end
-
-      puts
-
-      begin
-        debug "# loading template into erubis"
-        erb = Erubis::Eruby.new(File.read(subcommand_parameters.user_data_template))
-        debug
-      rescue => e
-        puts "# failed to load template: #{subcommand_parameters.user_data_template}"
-        die e
-      end
-
-      puts "# attempting to merge variables from config file and user_data_template_variables cli argument value"
-      puts
-
-      # create a new hash with variables to pass to template.. merge
-      # variables in order of presedence as described above.
-      user_data_template_variables_merged = {}
-
-      if config['common'].nil?
-        puts "# no 'common' section found in config file"
-        puts
-      else
-        puts "# merging config 'common':"
-        ap config['common']
-        user_data_template_variables_merged.merge!(config['common'])
-      end
-
-      puts
-
-      if config['template_variables'].nil?
-        puts "# no 'template_variables' section found in config file"
-        puts
-      else
-        puts "# merging config 'template_variables':"
-        ap config['template_variables']
-        user_data_template_variables_merged.merge!(config['template_variables'])
-      end
-
-      puts
-
-      if subcommand_parameters.user_data_template_variables.nil?
-        puts "# no user_data_template_variables given.."
-        puts
-      else
-        puts "# merging cli arg 'user_data_template_variables':"
-        ap eval(subcommand_parameters.user_data_template_variables)
-        user_data_template_variables_merged.merge!(eval(subcommand_parameters.user_data_template_variables))
-      end
-
-      puts
-
-      puts "# resulting merged user_data template variable hash:"
-      ap user_data_template_variables_merged
-      puts
-
-      return erb, user_data_template_variables_merged
-    end
 
     def self.display(subcommand_parameters)
       puts "# EC2 instance options:"
