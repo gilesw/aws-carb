@@ -16,7 +16,7 @@ module Ec2Control
       cli_arguments.subcommand.ec2                = OpenStruct.new
       cli_arguments.subcommand.route53            = OpenStruct.new
 
-      # these are the only default we need to bother setting since they get used before we load the config file..
+      # these are the only defaults we need to bother setting since they get used before we load the config file..
       cli_arguments.global.verbose = false
       cli_arguments.global.config_file = File.join(File.dirname(__FILE__), "config.yaml")
 
