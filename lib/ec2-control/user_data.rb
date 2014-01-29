@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+
 module Ec2Control
   module UserData
     def self.resolve_template(erb, user_data_template_variables_merged)

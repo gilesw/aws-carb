@@ -7,13 +7,11 @@ require 'awesome_print'
 require 'securerandom'
 require 'shell-spinner'
 require 'active_support/core_ext/string/strip'
+require 'active_support/core_ext/hash/keys'
 require 'ostruct'
 require 'subcommand'
 require 'colorize'
 require 'singleton'
-
-include Subcommands
-include Singleton
 
 # * list stuff
 # * terminate stuff
@@ -34,9 +32,13 @@ module Ec2Control
     # parse arguments
     cli_arguments = CliArgumentParser.parse
 
-    @config = Config.new(cli_arguments)
+    # instance replaces 'new' method for singleton class..
+    @config = Config.instance
 
-    @config.display
+    @config.create(cli_arguments)
+
+    @config.display if $VERBOSE
+    exit
 
     ## check whether hostname and domain were specified by the user or are in the config file
     hostname, domain, new_records = establish_hostname_and_domain(config, subcommand_parameters)

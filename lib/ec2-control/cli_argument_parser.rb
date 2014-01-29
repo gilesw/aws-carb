@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+include Subcommands
+
 # FIXME: this is all pretty messy
 # * would probably be better to print the help for each command on the line below each argument
 
@@ -47,7 +49,8 @@ module Ec2Control
         option.separator ""
 
         option.on("-v", "--verbose", "enable debug messages") do |boolean|
-          cli_arguments.global.debug = boolean
+          cli_arguments.global.verbose = boolean
+          $VERBOSE = true
         end
 
         option.separator ""
@@ -79,7 +82,7 @@ module Ec2Control
         option.separator ""
 
         option.on "--user-data-template=FILE", "user data template" do |user_data_template|
-          cli_arguments.subcommand.user_data_template.user_data_template = eval(user_data_template)
+          cli_arguments.subcommand.user_data_template.user_data_template = user_data_template
         end
 
         option.separator ""
@@ -98,7 +101,7 @@ module Ec2Control
           begin
             data = eval(common_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.common_variables = data
+            cli_arguments.subcommand.config_overrides.common_variables = data.deep_symbolize_keys
           rescue => e
             puts "# could not parse argument for --common-variables, is it a valid hash?"
             die e
@@ -111,7 +114,7 @@ module Ec2Control
           begin
             data = eval(general_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.general_variables = data
+            cli_arguments.subcommand.config_overrides.general_variables = data.deep_symbolize_keys
           rescue => e
             puts "# could not parse argument for --general-variables, is it a valid hash?"
             die e
@@ -124,7 +127,7 @@ module Ec2Control
           begin
             data = eval(ec2_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.ec2_variables = data
+            cli_arguments.subcommand.config_overrides.ec2_variables = data.deep_symbolize_keys
           rescue => e
             puts "# could not parse argument for --ec2-variables, is it a valid hash?"
             die e
@@ -137,7 +140,7 @@ module Ec2Control
           begin
             data = eval(route53_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.route53_variables = data
+            cli_arguments.subcommand.config_overrides.route53_variables = data.deep_symbolize_keys
           rescue => e
             puts "# could not parse argument for --route53-variables, is it a valid hash?"
             die e
@@ -148,7 +151,9 @@ module Ec2Control
 
         option.on "--user-data-template-variables=HASH", String, "user data template variables" do |user_data_template_variables|
           begin
-            cli_arguments.subcommand.config_overrides.user_data_template_variables = eval(user_data_template_variables)
+            data = eval(user_data_template_variables)
+            raise unless data.class == Hash
+            cli_arguments.subcommand.config_overrides.user_data_template_variables = data.deep_symbolize_keys
           rescue => e
             puts "# could not parse argument for --user-data-template-variables, is it a valid hash?"
             die e
@@ -324,10 +329,11 @@ module Ec2Control
       end
 
       begin
-        cli_arguments.subcommand = opt_parse
+        #cli_arguments.chosen_subcommand = opt_parse
+        subcommand = opt_parse
 
         # show help if no arguments passed in
-        if opt_parse.nil?
+        if subcommand.nil?
           add_subcommand_help
           puts @global
 

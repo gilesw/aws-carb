@@ -6,34 +6,39 @@ module Ec2Control
 
     attr_reader :config
 
-    def initialize(cli_arguments)
+    def create(cli_arguments)
 
-      @config = Config.load_file(cli_arguments.global.config_file)
+      @config = load_file(cli_arguments.global.config_file)
 
-      merge_cli_arguments_with_config
+      merge_cli_arguments_with_config(cli_arguments)
 
       establish_hostname_and_domain
     end
 
-    def merge_cli_arguments_with_config
+    def merge_cli_arguments_with_config(cli_arguments)
       begin
+        if cli_arguments.subcommand.config_overrides
+          # merge the config overrides into config
+          cli_arguments.subcommand.config_overrides.marshal_dump.each do |key, value|
+            if @config[key] and cli_arguments.subcommand.config_overrides.send("#{key}_variables")
+              @config[key].merge cli_arguments.subcommand.config_overrides.send("#{key}_variables")
+            end
+          end
+        end
 
-        # merge the config overrides into config
-        cli_arguments.subcommand.config_overrides.marshal_dump.each do |key, value|
-          if @config.send(key.to_s)
-            @config.send(key.to_s).merge cli_arguements.subcommand.config_overrides.send("#{key}_variables")
+        config_sections = [:common, :general, :ec2, :route53, :user_data_template_variables]
+
+        config_sections.each do |section|
+          if @config[section] and cli_arguments.subcommand.send(section.to_s)
+            @config[section].merge cli_arguments.subcommand.send(section.to_s).marshal_dump
           end
         end
 
         # merge the convenience argument parameters with config
-        @config.common.merge                       cli_arguements.subcommand.common.marshal_dump
-        @config.general.merge                      cli_arguements.subcommand.general.marshal_dump
-        @config.ec2.merge                          cli_arguements.subcommand.ec2.marshal_dump
-        @config.route53.merge                      cli_arguements.subcommand.route53.marshal_dump
-        @config.user_data_template_variables.merge cli_arguements.subcommand.user_data_template_variables.marshal_dump
+        @config.deep_symbolize_keys!
 
       rescue => e
-        puts "# failed to merge override hash for: #{key}"
+        puts "# failed to merge cli arguments with config"
         die e
       end
     end
@@ -43,7 +48,7 @@ module Ec2Control
       if cli_argument_config_file
         config_file = cli_argument_config_file
       else
-        config_file = 'config.yaml'
+        config_file = File.join(File.basename(__FILE__), 'config.yaml')
       end
 
       begin
@@ -58,8 +63,8 @@ module Ec2Control
     # when looking for a key, check 'common' section first, then override if a value
     # in the supplied context is found..
     def find_with_context(key, context) 
-      return @config.send(context)[key] if @config.send(context)[key]
-      return @config.common[key]        if @config.common[key]
+      return @config[context][key] if @config[context][key]
+      return @config[:common][key] if @config[:common][key]
       return nil
     end
 
@@ -74,16 +79,15 @@ module Ec2Control
     # 
     # note: raw user_data is not checked (not to be confused with user_data_template or user_data_template_variables..)
     #
-    def self.establish_hostname_and_domain(config, subcommand_parameters)
-
-      hostname, domain = nil
-
+    def establish_hostname_and_domain
       ShellSpinner "# checking whether hostname and domain have been set", false do
 
-        hostname = @config.find_with_context(:hostname, :user_data_template_variables)
-        domain   = @config.find_with_context(:domain,   :user_data_template_variables)
-        hostname = @config.find_with_context(:hostname, :route53)
-        domain   = @config.find_with_context(:domain, :route53)
+        hostname, domain = nil
+
+        hostname = find_with_context(:hostname, :user_data_template_variables)
+        domain   = find_with_context(:domain,   :user_data_template_variables)
+        hostname = find_with_context(:hostname, :route53)
+        domain   = find_with_context(:domain, :route53)
 
         help = <<-HEREDOC.strip_heredoc
           #       
@@ -111,31 +115,20 @@ module Ec2Control
           debug "domain:   #{domain}"
           debug
 
-          @config.new_records = {
+          @config[:new_records] = {
             :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
             :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
           }
         end
+
+        puts
       end
     end
 
 
-    def self.display(subcommand_parameters)
-      puts "# EC2 instance options:"
-
-      # FIXME: align variables in a column..
-      keys        = subcommand_parameters.marshal_dump.group_by(&:size).max
-      longest_key = keys[1][keys[0]][0].length
-
-      subcommand_parameters.marshal_dump.each do |key, value|
-
-        next if value.nil?
-        next if String(value).empty?
-
-        puts "#{key}:".to_s.ljust(longest_key + 2) + "#{value}" unless value.nil?
-      end
-
-      puts
+    def display
+      puts "# config:"
+      puts @config
     end
   end
 end
