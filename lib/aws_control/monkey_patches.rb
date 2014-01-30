@@ -15,14 +15,6 @@ module ShellSpinner
     #colorize.call(s, :red)
 
     def with_message(text = nil, colorize = false)
-      if !colorize or $stdout.tty?
-        String.class_eval do
-          def colorize(color)
-            self
-          end
-        end
-      end
-
       begin
         print "#{text}... " unless text.nil?
 

@@ -2,7 +2,7 @@
 
 include Subcommands
 
-module Ec2Control
+module AWSControl
   module CliArgumentParser
     def self.parse
       cli_arguments                               = OpenStruct.new

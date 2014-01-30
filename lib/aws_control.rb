@@ -10,25 +10,29 @@ require 'active_support/core_ext/string/strip'
 require 'active_support/core_ext/hash/keys'
 require 'ostruct'
 require 'subcommand'
-require 'colorize'
 require 'singleton'
 require 'andand'
-
-# * list stuff
-# * terminate stuff
-# * turn off spinner if not a tty?
+require 'colorize'
 
 # module is broken up into:
 #
-# Ec2Control.*                  - main methods
-# Ec2Control::CliArugmentParser - argument parsing
-# Ec2Control::Config            - argument checking / config checking
-# Ec2Control::UserData          - parse user data template and possibly combine with user_data cli arg
-# Ec2Control::AWS::Ec2          - build an ec2 instance
-# Ec2Control::AWS::Route53      - create dns records in route53
+# AWSControl.*                  - main methods
+# AWSControl::CliArugmentParser - argument parsing
+# AWSControl::Config            - argument checking / config checking
+# AWSControl::UserData          - parse user data template and possibly combine with user_data cli arg
+# AWSControl::Services::Ec2     - build an ec2 instance
+# AWSControl::Services::Route53 - create dns records in route53
 #
 
-module Ec2Control
+if ! $stdout.tty?
+  String.class_eval do
+    def colorize(args)
+      self
+    end
+  end
+end
+
+module AWSControl
   def self.run
 
     #
@@ -56,13 +60,13 @@ module Ec2Control
     # 
 
     if @config[:route53].andand[:new_dns_records]
-      @route53 = AmazonWebServices::Route53.instance
+      @route53 = Services::Route53.instance
       @route53.client(@config)
       @route53.check_hostname_and_domain_availability
     end
 
     ## initialize ec2 object with credentials
-    @ec2 = AmazonWebServices::Ec2.instance
+    @ec2 = Services::Ec2.instance
     @ec2.client(@config)
     @ec2.create_instance
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module Ec2Control
+module AWSControl
   class Config
     include Singleton
 

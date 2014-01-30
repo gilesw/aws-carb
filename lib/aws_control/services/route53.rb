@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-module Ec2Control
+module AWSControl
   # named so as not to clash with AWS module from aws-sdk
-  module AmazonWebServices
+  module Services
     class Route53
 
       include Singleton
