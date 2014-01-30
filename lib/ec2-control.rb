@@ -49,19 +49,18 @@ module Ec2Control
     @user_data.create(@config)
     @user_data.display if $VERBOSE or @config[:show_parsed_template]
 
-    exit
 
     #
     # aws interaction
     # 
 
+    AWS::Route53.check_hostname_and_domain_availability(@config)
+
+    exit
     # NOTE: create ec2 instance with DNS
 
-    ## initialize AWS object with credentials from config file
-    initialize_aws_with_credentials(@config)
-
     ## initialize ec2 object with credentials
-    ec2 = AWS.initialize_ec2_instance(config, subcommand_parameters)
+    #ec2 = AWS.initialize_ec2_instance(config, subcommand_parameters)
 
     instance = create_instance(config, ec2, subcommand_parameters, user_data)
 

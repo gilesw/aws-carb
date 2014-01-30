@@ -20,19 +20,32 @@ module Ec2Control
         return aws
       end
 
-      def self.check_hostname_and_domain_availability(config, hostname, domain, new_records)
+      def self.check_hostname_and_domain_availability(config)
+
+        # FIXME - horrible and also should this go in Config?
+        hostname = config.find_with_context(:hostname, :user_data_template_variables) if config.find_with_context(:hostname, :user_data_template_variables)
+        domain = config.find_with_context(:domain, :user_data_template_variables) if config.find_with_context(:domain, :user_data_template_variables)
+        hostname = config.find_with_context(:hostname, :route53) if config.find_with_context(:hostname, :route53)
+        domain = config.find_with_context(:domain, :route53) if config.find_with_context(:hostname, :route53)
 
         return unless hostname and domain
 
-        die 'no route53 configuration in zone file!'   if config['route53'].nil?
-        die 'route53: no zone id specified in config!' if config['route53']['zone'].nil?
-        die 'route53: no ttl specified in config!'     if config['route53']['zone'].nil?
+        # FIXME - should this go in Config?
+        config[:route53][:new_dns_records] = {
+          :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
+          :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+        }
+
+
+        die 'no route53 configuration in zone file!'   if config[:route53].nil?
+        die 'route53: no zone id specified in config!' if config[:route53][:zone].nil?
+        die 'route53: no ttl specified in config!'     if config[:route53][:zone].nil?
 
         ShellSpinner "# checking to see if hostname is in use", false do
           begin
-            record_sets = AWS::Route53::HostedZone.new(config['route53']['zone']).resource_record_sets
+            record_sets = ::AWS::Route53::HostedZone.new(config[:route53][:zone]).resource_record_sets
 
-            new_records.each_value do |record|
+            config[:route53][:new_dns_records].each_value do |record|
               die "error: record already exists: #{record[:alias]}" if record_sets[record[:alias], 'CNAME'].exists?
             end
 
@@ -53,7 +66,7 @@ module Ec2Control
           new_records[:public][:target]  = instance.public_dns_name
           new_records[:private][:target] = instance.private_dns_name
 
-          record_sets = AWS::Route53::HostedZone.new(config['route53']['zone']).resource_record_sets
+          record_sets = ::AWS::Route53::HostedZone.new(config[:route53][:zone]).resource_record_sets
 
           new_records.each do |record_scope, record|
             new_record = record_sets[record[:alias], 'CNAME']
