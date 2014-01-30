@@ -52,7 +52,7 @@ end
 # override the output from optparse to be a bit more aesthetically pleasing
 module Subcommands
   def print_actions
-    cmdtext = "subcommands:\n"
+    cmdtext = "SUBCOMMAND\n"
 
     @commands.each_pair do |c, opt|
       cmdtext << "\n   #{c}                                              #{opt.call.description}"
@@ -77,7 +77,7 @@ module Subcommands
     opt = lambda do
       OptionParser.new do |opts|
         yield opts
-        opts.banner << "\noptions:"
+        opts.banner << "OPTIONS"
       end
     end
 

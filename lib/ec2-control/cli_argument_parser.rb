@@ -15,27 +15,34 @@ module Ec2Control
 
       indent = ' ' * 12 
 
+      banner = <<-HEREDOC.strip_heredoc
+      #{File.basename($0)}
+
+      NAME
+
+            amazon web services - ec2 control program
+
+      HEREDOC
+
+
       # these are the only defaults we need to bother setting since they get used before we load the config file..
       cli_arguments.global.verbose = false
-      cli_arguments.global.config_file = File.join(File.dirname(__FILE__), "config.yaml")
+      cli_arguments.global.config_file = File.join(File.dirname($0), "config.yaml")
 
       global_options do |option|
 
-        banner = <<-HEREDOC.strip_heredoc
-        synopsis:
+        option.summary_width  = 50
+        option.summary_indent = '    '
+
+        synopsis = <<-HEREDOC.strip_heredoc
+        SYNOPSIS
         
-              amazon web services - ec2 control program
-
-        usage:
-
               #{File.basename($0)} [global options] [subcommand [options]]
 
         HEREDOC
 
-        option.banner = banner
-
-        option.separator "global options:"
-
+        option.banner = banner + synopsis
+        option.separator "GLOBAL OPTIONS"
         option.separator ""
 
         option.on("-c", "--config=FILE", "") do |file|
@@ -52,30 +59,26 @@ module Ec2Control
         end
 
         option.separator ""
-
         option.separator "    -h, --help"
       end
 
       command :create do |option|
-        banner = <<-HEREDOC.strip_heredoc
-        synopsis:
-        
-              amazon web services - ec2 control program
 
-        usage:
+        option.summary_width  = 50
+        option.summary_indent = '  '
+
+        synopsis = <<-HEREDOC.strip_heredoc
+        SYNOPSIS
 
               #{File.basename($0)} create [options]
 
         HEREDOC
 
-        option.banner      = banner
+        option.banner      = banner + synopsis
         option.description = "create an ec2 instance"
 
-        option.summary_width  = 50
-        option.summary_indent = '    '
-
         option.separator ""
-        option.separator "    user_data template options:"
+        option.separator "    user_data tempate options:"
         option.separator ""
 
         option.on "--user-data-template=FILE", "\n\n#{indent}user data template" do |user_data_template|
@@ -197,12 +200,13 @@ module Ec2Control
 
 
         block_device_help = <<-HEREDOC.strip_heredoc
+
            :virtual_name - (String) Specifies the virtual device name.
            :device_name - (String) Specifies the device name (e.g., /dev/sdh).
-           :ebs - (Hash) Specifies parameters used to automatically setup Amazon EBS volumes when the instance is launched.
+           :ebs - (Hash) Specifies parameters used to automatically setup Amazon\n#{indent}             EBS volumes when the instance is launched.
              :snapshot_id - (String) The ID of the snapshot from which the volume will be created.
              :volume_size - (Integer) The size of the volume, in gigabytes.
-             :delete_on_termination - (Boolean) Specifies whether the Amazon EBS volume is deleted on instance termination.
+             :delete_on_termination - (Boolean) Specifies whether the Amazon EBS volume is\n#{indent}                          deleted on instance termination.
              :volume_type - (String) Valid values include:
                standard
                io1
@@ -212,7 +216,7 @@ module Ec2Control
 
         block_device_help = block_device_help.lines.map { |line| indent + "  #{line}" }
 
-        block_device_help = "\n\n#{indent}Specifies how block devices are exposed to the instance. Each mapping is made up of a virtualName and a deviceName.\n" + block_device_help.join.downcase
+        block_device_help = "\n\n#{indent}Specifies how block devices are exposed to the instance. Each mapping\n#{indent}is made up of a virtualName and a deviceName.\n" + block_device_help.join.downcase
 
         option.on "--block-device-mappings=HASH", block_device_help do |key_name|
           cli_arguments.subcommand.ec2.key_name = key_name
