@@ -52,18 +52,18 @@ end
 # override the output from optparse to be a bit more aesthetically pleasing
 module Subcommands
   def print_actions
-    cmdtext = "SUBCOMMAND\n"
+    subcommand_help = "#{'SUBCOMMAND'.colorize({:color => :white, :mode => :bold})}\n"
 
     @commands.each_pair do |c, opt|
-      cmdtext << "\n   #{c}                                              #{opt.call.description}"
+      subcommand_help << "\n    #{c}              - #{opt.call.description}"
     end
 
     unless @aliases.empty?
-      cmdtext << "\n\naliases: \n"
-      @aliases.each_pair { |name, val| cmdtext << "   #{name} - #{val}\n"  }
+      subcommand_help << "\n\naliases: \n"
+      @aliases.each_pair { |name, val| subcommand_help << "   #{name} - #{val}\n"  }
     end
 
-    cmdtext << "\n\n   help <command>                                      for more information on a specific command\n\n"
+    subcommand_help << "\n\n    help <command>      - for more information on a specific command\n\n"
   end
 
   def command *names

@@ -13,14 +13,14 @@ module Ec2Control
       cli_arguments.subcommand.ec2                = OpenStruct.new
       cli_arguments.subcommand.route53            = OpenStruct.new
 
-      indent = ' ' * 12 
+      indent = ' ' * 10 
 
       banner = <<-HEREDOC.strip_heredoc
       #{File.basename($0)}
 
-      NAME
+      #{'NAME'.colorize({:color => :white, :mode => :bold})}
 
-            amazon web services - ec2 control program
+          amazon web services - ec2 control program
 
       HEREDOC
 
@@ -35,14 +35,14 @@ module Ec2Control
         option.summary_indent = '    '
 
         synopsis = <<-HEREDOC.strip_heredoc
-        SYNOPSIS
+        #{"SYNOPSIS".colorize({:color => :white, :mode => :bold})}
         
-              #{File.basename($0)} [global options] [subcommand [options]]
+            #{File.basename($0)} [global options] [subcommand [options]]
 
         HEREDOC
 
         option.banner = banner + synopsis
-        option.separator "GLOBAL OPTIONS"
+        option.separator "#{'GLOBAL OPTIONS'.colorize({:color => :white, :mode => :bold})}"
         option.separator ""
 
         option.on("-c", "--config=FILE", "") do |file|
@@ -68,9 +68,9 @@ module Ec2Control
         option.summary_indent = '  '
 
         synopsis = <<-HEREDOC.strip_heredoc
-        SYNOPSIS
+        #{'SYNOPSIS'.colorize({:color => :white, :mode => :bold})}
 
-              #{File.basename($0)} create [options]
+            #{File.basename($0)} create [options]
 
         HEREDOC
 
