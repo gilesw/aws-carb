@@ -76,6 +76,8 @@ runcmd:
   - echo 'aws_secret_access_key = <%= s3_secret_access_key %>' >> /root/.aws/config
   - echo 'region = <%= s3_region %>' >> /root/.aws/config
 
+  # update route53 on boot
+  # available at: https://github.com/roobert/route53-dynamic_dns_update
   - aws s3 --profile s3 cp --region us-east-1 s3://aws.semantico.com.cloudinit/aws-route53.conf /etc/aws-route53.conf
   - aws s3 --profile s3 cp --region us-east-1 s3://aws.semantico.com.cloudinit/route53-dynamic_dns_update.rb /usr/local/bin/route53-dynamic_dns_update.rb
   - chmod 400 /etc/aws-route53.conf
