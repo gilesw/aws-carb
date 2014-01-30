@@ -12,6 +12,7 @@ require 'ostruct'
 require 'subcommand'
 require 'colorize'
 require 'singleton'
+require 'andand'
 
 # * list stuff
 # * terminate stuff
@@ -40,32 +41,34 @@ module Ec2Control
     # create a configuration based on our various data sources..
     @config = Config.instance
     @config.create(cli_arguments)
-    @config.display if $DEBUG
+    @config.display if $GLOBAL_VERBOSE
 
     # load erb template and parse the template with user_data_template_variables
     # then merge user_data template with raw user_data (if provided) -
     # end up single user_data ready to pass into ec2 instance..
     @user_data = UserData.instance
     @user_data.create(@config)
-    @user_data.display if @config[:user_data_template][:file] and ($DEBUG or @config[:show_parsed_template])
+    @user_data.display if @config[:user_data_template][:file] and ($GLOBAL_VERBOSE or @config[:show_parsed_template])
 
 
     #
     # aws interaction
     # 
 
-    @route53 = AmazonWebServices::Route53.instance
-    @route53.client(@config)
-    @route53.check_hostname_and_domain_availability
+    if @config[:route53].andand[:new_dns_records]
+      @route53 = AmazonWebServices::Route53.instance
+      @route53.client(@config)
+      @route53.check_hostname_and_domain_availability
+    end
 
     ## initialize ec2 object with credentials
     @ec2 = AmazonWebServices::Ec2.instance
     @ec2.client(@config)
     @ec2.create_instance
 
-    # FIXME: add to route53 stuff..
-
-    @route53.create_records(@ec2)
+    if @config[:route53].andand[:new_dns_records]
+      @route53.create_records(@ec2)
+    end
 
     #
     # summary

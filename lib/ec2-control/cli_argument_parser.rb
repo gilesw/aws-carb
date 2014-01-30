@@ -50,7 +50,9 @@ module Ec2Control
 
         option.on("-v", "--verbose", "enable debug messages") do |boolean|
           cli_arguments.global.verbose = boolean
-          $DEBUG = true
+
+          # FIXME: use a stupidly named global(!!!!!) variable to avoid clashing with rubys $VERBOSE
+          $GLOBAL_VERBOSE = boolean
         end
 
         option.separator ""

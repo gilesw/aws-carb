@@ -26,33 +26,24 @@ module Ec2Control
 
         ShellSpinner "# checking to see if hostname and domain have been configured", false do
 
-          # FIXME - horrible and also should this go in Config?
-          hostname = @config.find_with_context(:hostname, :user_data_template_variables) if @config.find_with_context(:hostname, :user_data_template_variables)
-          domain   = @config.find_with_context(:domain, :user_data_template_variables) if @config.find_with_context(:domain, :user_data_template_variables)
-          hostname = @config.find_with_context(:hostname, :route53) if @config.find_with_context(:hostname, :route53)
-          domain   = @config.find_with_context(:domain, :route53) if @config.find_with_context(:hostname, :route53)
+          if @config[:route53][:hostname] and @config[:route53][:domain]
 
-          unless hostname and domain
+            @config[:route53][:new_dns_records] = {
+              :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
+              :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+            }
+
+          else
             debug "# skipping route53 check since either hostname or domain wasn't found:"
             debug "hostname not found" if hostname.nil?
             debug "domain not found"   if domain.nil?
             debug
-            return
           end
-
-          # FIXME - should this go in Config?
-          @config[:route53][:new_dns_records] = {
-            :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-            :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
-          }
-
-
-          die 'no route53 configuration in zone file!'   if @config[:route53].nil?
-          die 'route53: no zone id specified in config!' if @config[:route53][:zone].nil?
-          die 'route53: no ttl specified in config!'     if @config[:route53][:zone].nil?
         end
 
         puts
+
+        return unless @config[:route53][:new_dns_records]
 
         ShellSpinner "# checking to see if record exists", false do
           begin

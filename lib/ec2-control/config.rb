@@ -13,6 +13,13 @@ module Ec2Control
       merge_cli_arguments_with_config(cli_arguments)
 
       establish_hostname_and_domain
+
+      check_route53_settings
+    end
+
+    def check_route53_settings
+      die 'route53: no zone id specified!' if @config[:route53][:zone].nil?
+      die 'route53: no ttl specified!'     if @config[:route53][:zone].nil?
     end
 
     def merge_cli_arguments_with_config(cli_arguments)
@@ -89,10 +96,10 @@ module Ec2Control
 
         hostname, domain = nil
 
-        hostname = find_with_context(:hostname, :user_data_template_variables) unless find_with_context(:hostname, :user_data_template_variables).nil?
-        domain   = find_with_context(:domain,   :user_data_template_variables) unless find_with_context(:domain,   :user_data_template_variables).nil?
-        hostname = find_with_context(:hostname, :route53)                      unless find_with_context(:hostname, :route53).nil?
-        domain   = find_with_context(:domain, :route53)                        unless find_with_context(:domain, :route53).nil?
+        @config[:route53][:hostname] = find_with_context(:hostname, :user_data_template_variables) unless find_with_context(:hostname, :user_data_template_variables).nil?
+        @config[:route53][:domain]   = find_with_context(:domain,   :user_data_template_variables) unless find_with_context(:domain,   :user_data_template_variables).nil?
+        @config[:route53][:hostname] = find_with_context(:hostname, :route53)                      unless find_with_context(:hostname, :route53).nil?
+        @config[:route53][:domain]   = find_with_context(:domain, :route53)                        unless find_with_context(:domain, :route53).nil?
 
         help = <<-HEREDOC.strip_heredoc
           #       
@@ -122,8 +129,15 @@ module Ec2Control
           debug "hostname: #{hostname}"
           debug "domain:   #{domain}"
           debug
+
+          @config[:route53][:new_dns_records] = {
+            :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
+            :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+          }
         end
       end
+
+      puts
     end
 
 

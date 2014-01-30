@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 def die(error)
-  if $DBEUG and error.respond_to?('backtrace')
+  if $GLOBAL_VERBOSE and error.respond_to?('backtrace')
     puts "# stack trace:"
     puts error.backtrace
     puts
@@ -13,6 +13,5 @@ def die(error)
 end
 
 def debug(message = nil)
-  puts message if $DEBUG
+  puts message if @GLOBAL_VERBOSE
 end
-
