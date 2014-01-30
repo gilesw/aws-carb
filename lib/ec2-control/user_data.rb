@@ -13,15 +13,29 @@ module Ec2Control
     end
 
     def resolve_template(config)
+      return nil unless config[:ec2] and config[:user_data_template][:file]
+
       # FIXME: blank templates / empty templates / no template should work..
+
       begin
-        return nil unless config[:ec2] and config[:user_data_template]
+        template_file = config[:user_data_template][:file]
+        ap File.exist?(template_file)
 
-        template = Erubis::Eruby.new(File.read(config[:user_data_template][:file]))
+        raise ArgumentError, "no such file: #{template_file}" unless File.exist?(template_file)
 
-        return template.result(config[:user_data_template_variables])
+        user_data_template = File.read(template_file)
+      rescue => e
+        puts "# unable to open config file:" 
+        die e
+      end
+
+      puts
+
+      begin
+        return Erubis::Eruby.new(user_data_template).result(config[:user_data_template_variables])
       rescue => e
         puts "# failed to resolve variables in user_data_template:"
+        ap e.class
         die e
       end
     end
@@ -44,7 +58,7 @@ module Ec2Control
           user_data = user_data_template_resolved
           debug
         elsif user_data.nil?
-          debug "# no user_data specified on the command line"
+          debug "# no user_data or user_data_template specified on the command line"
           user_data = ""
           debug
         else

@@ -47,7 +47,7 @@ module Ec2Control
     # end up single user_data ready to pass into ec2 instance..
     @user_data = UserData.instance
     @user_data.create(@config)
-    @user_data.display if $VERBOSE or @config[:show_parsed_template]
+    @user_data.display if @config[:user_data_template][:file] and ($VERBOSE or @config[:show_parsed_template])
 
 
     #
