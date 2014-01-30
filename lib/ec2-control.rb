@@ -40,71 +40,61 @@ module Ec2Control
     # create a configuration based on our various data sources..
     @config = Config.instance
     @config.create(cli_arguments)
-    @config.display if $VERBOSE
+    @config.display if $DEBUG
 
     # load erb template and parse the template with user_data_template_variables
     # then merge user_data template with raw user_data (if provided) -
     # end up single user_data ready to pass into ec2 instance..
     @user_data = UserData.instance
     @user_data.create(@config)
-    @user_data.display if @config[:user_data_template][:file] and ($VERBOSE or @config[:show_parsed_template])
+    @user_data.display if @config[:user_data_template][:file] and ($DEBUG or @config[:show_parsed_template])
 
 
     #
     # aws interaction
     # 
 
-    @route53 = AWS::Route53.instance
+    @route53 = AmazonWebServices::Route53.instance
     @route53.client(@config)
-    @route53.check_hostname_and_domain_availability(@config)
-
-    exit
-    # NOTE: create ec2 instance with DNS
+    @route53.check_hostname_and_domain_availability
 
     ## initialize ec2 object with credentials
-    #ec2 = AWS.initialize_ec2_instance(config, subcommand_parameters)
-
-    instance = create_instance(config, ec2, subcommand_parameters, user_data)
+    @ec2 = AmazonWebServices::Ec2.instance
+    @ec2.client(@config)
+    @ec2.create_instance
 
     # FIXME: add to route53 stuff..
 
-    #@config[:route53] ||= {}
-
-    #@config[:route53][:new_dns_records] = {
-    #  :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-    #  :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
-    #}
-
-    update_route53(instance, config, hostname, domain, new_records, record_sets)
+    @route53.create_records(@ec2)
 
     #
     # summary
     # 
 
-    show_instance_details(instance, new_records, hostname, domain)
+    show_instance_details
   end
 
-  def self.show_instance_details(instance, new_records, hostname, domain)
+  def self.show_instance_details
     puts <<-HEREDOC.strip_heredoc
       # instance details:
-      id:               #{instance.id}
-      public ip:        #{instance.public_ip_address}
-      public aws fqdn:  #{instance.public_dns_name}
-      private ip:       #{instance.private_ip_address}
-      private aws fqdn: #{instance.private_dns_name}
+      id:               #{@ec2.instance.id}
+      public ip:        #{@ec2.instance.public_ip_address}
+      public aws fqdn:  #{@ec2.instance.public_dns_name}
+      private ip:       #{@ec2.instance.private_ip_address}
+      private aws fqdn: #{@ec2.instance.private_dns_name}
     HEREDOC
 
-    unless hostname.nil? or domain.nil?
+    unless @config[:route53][:new_dns_records].nil?
       puts <<-HEREDOC.strip_heredoc
-        public fqdn:      #{new_records[:public][:alias]}
-        private fqdn:     #{new_records[:private][:alias]}
+        public fqdn:      #{@config[:route53][:new_dns_records][:public][:alias]}
+        private fqdn:     #{@config[:route53][:new_dns_records][:private][:alias]}
       HEREDOC
     end
 
     puts <<-HEREDOC.strip_heredoc
       
       # connect: 
-      ssh #{instance.dns_name} -l ubuntu
+      ssh #{@ec2.instance.dns_name} -l ubuntu
     HEREDOC
   end
 end

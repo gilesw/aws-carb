@@ -50,7 +50,7 @@ module Ec2Control
 
         option.on("-v", "--verbose", "enable debug messages") do |boolean|
           cli_arguments.global.verbose = boolean
-          $VERBOSE = true
+          $DEBUG = true
         end
 
         option.separator ""
