@@ -26,12 +26,7 @@ module Ec2Control
 
         ShellSpinner "# checking to see if hostname and domain have been configured", false do
 
-          if @config[:route53][:hostname] and @config[:route53][:domain]
-
-            @config[:route53][:new_dns_records] = {
-              :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-              :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
-            }
+          if @config[:route53].andand[:new_dns_records]
 
           else
             debug "# skipping route53 check since either hostname or domain wasn't found:"
@@ -43,7 +38,7 @@ module Ec2Control
 
         puts
 
-        return unless @config[:route53][:new_dns_records]
+        return unless @config[:route53].andand[:new_dns_records]
 
         ShellSpinner "# checking to see if record exists", false do
           begin
@@ -68,7 +63,7 @@ module Ec2Control
           return
         end
 
-        ShellSpinner "# updating route53 with new CNAME for host", false do
+        ShellSpinner "# updating route53 with new CNAMES for host", false do
 
           @config[:route53][:new_dns_records][:public][:target]  = ec2.instance.public_dns_name
           @config[:route53][:new_dns_records][:private][:target] = ec2.instance.private_dns_name

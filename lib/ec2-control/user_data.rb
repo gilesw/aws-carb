@@ -45,7 +45,7 @@ module Ec2Control
       # if user_data_template and user_data are supplied then combine them, otherwise just
       # use user_data (which is empty by default)
       begin
-        if config[:ec2] and config[:ec2][:user_data]
+        if config[:ec2].andand[:user_data]
           user_data = config[:ec2][:user_data]
         end
 
