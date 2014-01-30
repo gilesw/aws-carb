@@ -54,7 +54,9 @@ module Ec2Control
     # aws interaction
     # 
 
-    AWS::Route53.check_hostname_and_domain_availability(@config)
+    @route53 = AWS::Route53.instance
+    @route53.client(@config)
+    @route53.check_hostname_and_domain_availability(@config)
 
     exit
     # NOTE: create ec2 instance with DNS

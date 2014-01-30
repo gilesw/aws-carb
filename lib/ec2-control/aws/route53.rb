@@ -2,7 +2,11 @@
 
 module Ec2Control
   module AWS
-    module Route53
+    def create(config)
+      @r53 = AWS::Route53.new(config[:route53])
+    end
+
+    class Route53
       def self.initialize_aws_with_credentials(config)
         begin
           aws = AWS.config(config['ec2'])
@@ -43,7 +47,7 @@ module Ec2Control
 
         ShellSpinner "# checking to see if hostname is in use", false do
           begin
-            record_sets = ::AWS::Route53::HostedZone.new(config[:route53][:zone]).resource_record_sets
+            record_sets = AWS::Route53::HostedZone.new(config[:route53][:zone]).resource_record_sets
 
             config[:route53][:new_dns_records].each_value do |record|
               die "error: record already exists: #{record[:alias]}" if record_sets[record[:alias], 'CNAME'].exists?
