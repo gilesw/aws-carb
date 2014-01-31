@@ -77,7 +77,6 @@ module AWSCarb
     @user_data.create(@config)
     @user_data.display if @config[:user_data_template][:file] and ($GLOBAL_VERBOSE or @config[:show_parsed_template])
 
-
     #
     # aws interaction
     # 

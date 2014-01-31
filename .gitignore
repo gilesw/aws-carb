@@ -1,6 +1,5 @@
-config.yaml
-aws-route53.conf
 .*.sw?
 *.lock
 *.gem
 .bundle
+config.yaml

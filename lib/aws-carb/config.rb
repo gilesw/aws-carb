@@ -26,6 +26,13 @@ module AWSCarb
       begin
 
         config_sections = [:common, :general, :ec2, :route53, :user_data_template_variables, :user_data_template]
+
+        # special condition: common command line arguments are shared between all instances first..
+        if cli_arguments.subcommand.config_overrides.common_variables
+          @config[:common] ||= {}
+          @config[:common].merge! cli_arguments.subcommand.config_overrides.common_variables
+        end
+
         # all sections share 'common' variables..
         config_sections.each do |section|
           @config[section] ||= {}
@@ -35,7 +42,14 @@ module AWSCarb
         # merge the config overrides hashes into config
         if cli_arguments.subcommand.config_overrides
           cli_arguments.subcommand.config_overrides.marshal_dump.each do |key, value|
-            @config[key].merge! cli_arguments.subcommand.config_overrides.send(key)
+
+            next if key == :common
+
+            # key differs from command line argument - we lose the _variables suffix
+            config_key = key.to_s.gsub('_variables', '').to_sym
+
+            @config[config_key] ||= {}
+            @config[config_key].merge! cli_arguments.subcommand.config_overrides.send(key)
           end
         end
 
@@ -95,10 +109,10 @@ module AWSCarb
 
         hostname, domain = nil
 
-        @config[:route53][:hostname] = find_with_context(:hostname, :user_data_template_variables) unless find_with_context(:hostname, :user_data_template_variables).nil?
-        @config[:route53][:domain]   = find_with_context(:domain,   :user_data_template_variables) unless find_with_context(:domain,   :user_data_template_variables).nil?
-        @config[:route53][:hostname] = find_with_context(:hostname, :route53)                      unless find_with_context(:hostname, :route53).nil?
-        @config[:route53][:domain]   = find_with_context(:domain, :route53)                        unless find_with_context(:domain, :route53).nil?
+        @config[:route53][:hostname] = find_with_context(:hostname, :user_data_template_variables) if find_with_context(:hostname, :user_data_template_variables)
+        @config[:route53][:domain]   = find_with_context(:domain,   :user_data_template_variables) if find_with_context(:domain,   :user_data_template_variables)
+        @config[:route53][:hostname] = find_with_context(:hostname, :route53)                      if find_with_context(:hostname, :route53)
+        @config[:route53][:domain]   = find_with_context(:domain, :route53)                        if find_with_context(:domain, :route53)
 
         help = <<-HEREDOC.strip_heredoc
           #       
@@ -110,6 +124,9 @@ module AWSCarb
           #
           #          route53 dynamic DNS will not be updated!
         HEREDOC
+
+        domain   = @config[:route53][:domain]
+        hostname = @config[:route53][:hostname]
 
         if domain.nil? and hostname.nil?
           debug "# WARNING: hostname and domain not found"
