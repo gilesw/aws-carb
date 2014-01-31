@@ -105,7 +105,7 @@ module AWSCarb
           begin
             data = eval(common_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.common_variables = data
+            cli_arguments.subcommand.config_overrides.common_variables = ActiveSupport::HashWithIndifferentAccess.new(data)
           rescue => e
             puts "# could not parse argument for --common-variables, is it a valid hash?"
             die e
@@ -118,7 +118,7 @@ module AWSCarb
           begin
             data = eval(general_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.general_variables = data
+            cli_arguments.subcommand.config_overrides.general_variables = ActiveSupport::HashWithIndifferentAccess.new(data)
           rescue => e
             puts "# could not parse argument for --general-variables, is it a valid hash?"
             die e
@@ -131,7 +131,7 @@ module AWSCarb
           begin
             data = eval(ec2_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.ec2_variables = data
+            cli_arguments.subcommand.config_overrides.ec2_variables = ActiveSupport::HashWithIndifferentAccess.new(data)
           rescue => e
             puts "# could not parse argument for --ec2-variables, is it a valid hash?"
             die e
@@ -144,7 +144,7 @@ module AWSCarb
           begin
             data = eval(route53_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.route53_variables = data
+            cli_arguments.subcommand.config_overrides.route53_variables = ActiveSupport::HashWithIndifferentAccess.new(data)
           rescue => e
             puts "# could not parse argument for --route53-variables, is it a valid hash?"
             die e
@@ -157,7 +157,7 @@ module AWSCarb
           begin
             data = eval(user_data_template_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.user_data_template_variables = data
+            cli_arguments.subcommand.config_overrides.user_data_template_variables = ActiveSupport::HashWithIndifferentAccess.new(data)
           rescue => e
             puts "# could not parse argument for --user-data-template-variables, is it a valid hash?"
             die e
@@ -204,17 +204,17 @@ module AWSCarb
 
         block_device_help = <<-HEREDOC.strip_heredoc
 
-           :virtual_name - (String) Specifies the virtual device name.
-           :device_name - (String) Specifies the device name (e.g., /dev/sdh).
-           :ebs - (Hash) Specifies parameters used to automatically setup Amazon\n#{indent}             EBS volumes when the instance is launched.
-             :snapshot_id - (String) The ID of the snapshot from which the volume will be created.
-             :volume_size - (Integer) The size of the volume, in gigabytes.
-             :delete_on_termination - (Boolean) Specifies whether the Amazon EBS volume is\n#{indent}                          deleted on instance termination.
-             :volume_type - (String) Valid values include:
+           virtual_name - (String) Specifies the virtual device name.
+           device_name - (String) Specifies the device name (e.g., /dev/sdh).
+           ebs - (Hash) Specifies parameters used to automatically setup Amazon\n#{indent}             EBS volumes when the instance is launched.
+             snapshot_id - (String) The ID of the snapshot from which the volume will be created.
+             volume_size - (Integer) The size of the volume, in gigabytes.
+             delete_on_termination - (Boolean) Specifies whether the Amazon EBS volume is\n#{indent}                          deleted on instance termination.
+             volume_type - (String) Valid values include:
                standard
                io1
-           :iops - (Integer)
-           :no_device - (String) Specifies the device name to suppress during instance launch.
+           iops - (Integer)
+           no_device - (String) Specifies the device name to suppress during instance launch.
         HEREDOC
 
         block_device_help = block_device_help.lines.map { |line| indent + "  #{line}" }
@@ -224,10 +224,10 @@ module AWSCarb
         option.on "--block-device-mappings=HASH", block_device_help do |mapping|
           begin
             data = eval(mapping)
-            raise unless data.class == Hash
-            cli_arguments.subcommand.ec2.block_device_mappings = data
+            raise "parsed value isn't a hash!" unless data.class == Hash
+            cli_arguments.subcommand.ec2.block_device_mappings = ActiveSupport::HashWithIndifferentAccess.new(data)
           rescue => e
-            puts "# could not parse argument for --common-variables, is it a valid hash?"
+            puts "# could not parse argument for --block-device-mappings, is it a valid hash and are the values properly quoted?"
             die e
           end
         end

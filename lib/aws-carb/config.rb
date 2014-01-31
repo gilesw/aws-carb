@@ -29,14 +29,14 @@ module AWSCarb
 
         # special condition: common command line arguments are shared between all instances first..
         if cli_arguments.subcommand.config_overrides.common_variables
-          @config[:common] ||= {}
-          @config[:common].merge! cli_arguments.subcommand.config_overrides.common_variables
+          @config[:common] ||= ActiveSupport::HashWithIndifferentAccess({})
+          @config[:common].update cli_arguments.subcommand.config_overrides.common_variables
         end
 
         # all sections share 'common' variables..
         config_sections.each do |section|
-          @config[section] ||= {}
-          @config[section].merge! @config[:common]
+          @config[section] ||= ActiveSupport::HashWithIndifferentAccess({})
+          @config[section].update @config[:common]
         end
 
         # merge the config overrides hashes into config
@@ -48,15 +48,15 @@ module AWSCarb
             # key differs from command line argument - we lose the _variables suffix
             config_key = key.to_s.gsub('_variables', '').to_sym
 
-            @config[config_key] ||= {}
-            @config[config_key].merge! cli_arguments.subcommand.config_overrides.send(key)
+            @config[config_key] ||= ActiveSupport::HashWithIndifferentAccess({})
+            @config[config_key].update cli_arguments.subcommand.config_overrides.send(key)
           end
         end
 
         # merge the convenience arguments..
         config_sections.each do |section|
           if cli_arguments.subcommand.send(section.to_s)
-            @config[section].merge! cli_arguments.subcommand.send(section.to_s).marshal_dump
+            @config[section].update cli_arguments.subcommand.send(section.to_s).marshal_dump
           end
         end
 
