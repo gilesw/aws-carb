@@ -15,8 +15,7 @@ ssh_authorized_keys:
 <% end %>
 
 bootcmd:
-  - echo "deb http://<%= repository_server -%>/debian/ <%= debian_distro -%> main" >> /etc/apt/sources.list.d/semantico.list
-  - wget -O - http://<%= repository_server -%>/RPM-GPG-KEY-semantico | apt-key add -
+  - echo "deb http://<%= repository_server -%>/debian/ <%= debian_distro -%> main" >> /etc/apt/<%= apt_source_name -%>.list.d/<% apt_source_name -%>.list
 
 package_upgrade: true
 
@@ -78,8 +77,8 @@ runcmd:
 
   # update route53 on boot
   # available at: https://github.com/roobert/route53-dynamic_dns_update
-  - aws s3 --profile s3 cp --region us-east-1 s3://aws.semantico.com.cloudinit/aws-route53.conf /etc/aws-route53.conf
-  - aws s3 --profile s3 cp --region us-east-1 s3://aws.semantico.com.cloudinit/route53-dynamic_dns_update.rb /usr/local/bin/route53-dynamic_dns_update.rb
+  - aws s3 --profile s3 cp --region us-east-1 s3://<%= s3_bucket -%>.cloudinit/aws-route53.conf /etc/aws-route53.conf
+  - aws s3 --profile s3 cp --region us-east-1 s3://<%= s3_bucket -%>.cloudinit/route53-dynamic_dns_update.rb /usr/local/bin/route53-dynamic_dns_update.rb
   - chmod 400 /etc/aws-route53.conf
   - chmod 755 /usr/local/bin/route53-dynamic_dns_update.rb
   - echo '/usr/local/bin/route53-dynamic_dns_update.rb' > /etc/rc.local

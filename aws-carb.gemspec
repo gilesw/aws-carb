@@ -1,16 +1,16 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'carb/version'
+require 'aws-carb/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "carb"
-  spec.version       = Carb::VERSION
+  spec.name          = "aws-carb"
+  spec.version       = AWSCarb::VERSION
   spec.authors       = ["Rob Wilson"]
   spec.email         = ["roobert@gmail.com"]
   spec.summary       = "aws - cloudinit and route53 bootstrap"
   spec.description   = "a tool for provisioning ec2 instances with a templated cloudinit configuration, with the optional ability to update route53 with dns records to point at your new instance"
-  spec.homepage      = "http://github.com/roobert/carb"
+  spec.homepage      = "http://github.com/roobert/aws-carb"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "bundler", "~> 1.5"
-  spec.add_development_dependency "rake",    "~> 1"
+  spec.add_development_dependency "rake",    "~> 10.0.0"
 
   spec.add_dependency "activesupport", ">= 4.0.0"
   spec.add_dependency "andand",        ">= 1.3.0"

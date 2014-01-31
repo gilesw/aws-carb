@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module Carb
+module AWSCarb
   module Services
     class Ec2
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module Carb
+module AWSCarb
   class UserData
 
     include Singleton

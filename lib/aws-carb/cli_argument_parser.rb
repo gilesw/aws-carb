@@ -2,7 +2,7 @@
 
 include Subcommands
 
-module Carb
+module AWSCarb
   module CliArgumentParser
     def self.parse
       cli_arguments                               = OpenStruct.new

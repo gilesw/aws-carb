@@ -2,13 +2,13 @@
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '../lib'))
 
-require 'carb'
-require 'carb/helpers'
-require 'carb/cli_argument_parser'
-require 'carb/config'
-require 'carb/user_data'
-require 'carb/services/route53'
-require 'carb/services/ec2'
-require 'carb/monkey_patches'
+require 'aws-carb'
+require 'aws-carb/helpers'
+require 'aws-carb/cli_argument_parser'
+require 'aws-carb/config'
+require 'aws-carb/user_data'
+require 'aws-carb/services/route53'
+require 'aws-carb/services/ec2'
+require 'aws-carb/monkey_patches'
 
-Carb.run
+AWSCarb.run

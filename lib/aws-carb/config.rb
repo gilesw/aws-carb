@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module Carb
+module AWSCarb
   class Config
     include Singleton
 

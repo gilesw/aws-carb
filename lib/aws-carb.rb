@@ -16,12 +16,12 @@ require 'colorize'
 
 # module is broken up into:
 #
-# Carb.*                  - main methods
-# Carb::CliArugmentParser - argument parsing
-# Carb::Config            - argument checking / config checking
-# Carb::UserData          - parse user data template and possibly combine with user_data cli arg
-# Carb::Services::Ec2     - build an ec2 instance
-# Carb::Services::Route53 - create dns records in route53
+# AWSCarb.*                  - main methods
+# AWSCarb::CliArugmentParser - argument parsing
+# AWSCarb::Config            - argument checking / config checking
+# AWSCarb::UserData          - parse user data template and possibly combine with user_data cli arg
+# AWSCarb::Services::Ec2     - build an ec2 instance
+# AWSCarb::Services::Route53 - create dns records in route53
 #
 
 if ! $stdout.tty?
@@ -32,7 +32,7 @@ if ! $stdout.tty?
   end
 end
 
-module Carb
+module AWSCarb
   def self.banner
     banner = <<-HEREDOC.strip_heredoc
 
