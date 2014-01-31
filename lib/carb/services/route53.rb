@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module AWSControl
+module Carb
   # named so as not to clash with AWS module from aws-sdk
   module Services
     class Route53

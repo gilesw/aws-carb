@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module AWSControl
+module Carb
   module Services
     class Ec2
 

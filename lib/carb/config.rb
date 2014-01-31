@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module AWSControl
+module Carb
   class Config
     include Singleton
 

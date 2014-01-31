@@ -2,7 +2,7 @@
 
 include Subcommands
 
-module AWSControl
+module Carb
   module CliArgumentParser
     def self.parse
       cli_arguments                               = OpenStruct.new
@@ -20,7 +20,7 @@ module AWSControl
 
       #{'NAME'.colorize({:color => :white, :mode => :bold})}
 
-                             AWS CARB
+                              carb
 
       #{'DESCRIPTION'.colorize({:color => :white, :mode => :bold})}
 

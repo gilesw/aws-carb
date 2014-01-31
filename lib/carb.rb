@@ -16,12 +16,12 @@ require 'colorize'
 
 # module is broken up into:
 #
-# AWSControl.*                  - main methods
-# AWSControl::CliArugmentParser - argument parsing
-# AWSControl::Config            - argument checking / config checking
-# AWSControl::UserData          - parse user data template and possibly combine with user_data cli arg
-# AWSControl::Services::Ec2     - build an ec2 instance
-# AWSControl::Services::Route53 - create dns records in route53
+# Carb.*                  - main methods
+# Carb::CliArugmentParser - argument parsing
+# Carb::Config            - argument checking / config checking
+# Carb::UserData          - parse user data template and possibly combine with user_data cli arg
+# Carb::Services::Ec2     - build an ec2 instance
+# Carb::Services::Route53 - create dns records in route53
 #
 
 if ! $stdout.tty?
@@ -32,7 +32,27 @@ if ! $stdout.tty?
   end
 end
 
-module AWSControl
+module Carb
+  def self.banner
+    banner = <<-HEREDOC.strip_heredoc
+
+       ::::::::      :::     :::::::::  :::::::::  
+      :+:    :+:   :+: :+:   :+:    :+: :+:    :+: 
+      +:+         +:+   +:+  +:+    +:+ +:+    +:+ 
+      +#+        +#++:++#++: +#++:++#:  +#++:++#+  
+      +#+        +#+     +#+ +#+    +#+ +#+    +#+ 
+      #+#    #+# #+#     #+# #+#    #+# #+#    #+# 
+       ########  ###     ### ###    ### #########  
+
+          - cloudinit and route53 bootstrap -
+
+    HEREDOC
+
+    indent = ' ' * 6
+
+    puts banner.each_line.map { |line| indent + line }
+  end
+
   def self.run
 
     #
@@ -41,6 +61,9 @@ module AWSControl
 
     # parse cli args
     cli_arguments = CliArgumentParser.parse
+
+    # display banner on successful cli argument parsing..
+    banner
 
     # create a configuration based on our various data sources..
     @config = Config.instance
