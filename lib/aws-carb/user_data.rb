@@ -40,7 +40,6 @@ module AWSCarb
           @resolved_template = Erubis::Eruby.new(@user_data_template).result(config[:user_data_template_variables])
         rescue => e
           puts "# failed to resolve variables in user_data_template:"
-          ap e.class
           die e
         end
       end
