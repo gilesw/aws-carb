@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["roobert@gmail.com"]
   spec.summary       = "aws - cloudinit and route53 bootstrap"
   spec.description   = "a tool for provisioning ec2 instances with a templated cloudinit configuration, with the optional ability to update route53 with dns records to point at your new instance"
-  spec.homepage      = ""
+  spec.homepage      = "http://github.com/roobert/carb"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
