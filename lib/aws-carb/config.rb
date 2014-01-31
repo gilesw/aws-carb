@@ -57,11 +57,10 @@ module AWSCarb
 
     def load_file(cli_argument_config_file)
 
-      if cli_argument_config_file
-        config_file = cli_argument_config_file
-      else
-        config_file = File.join(File.basename(__FILE__), 'config.yaml')
-      end
+      # allow forcing of no config file..
+      return if cli_argument_config_file.empty?
+
+      config_file = cli_argument_config_file
 
       begin
         # make keys symbols so we can more easily merge with cli arg structs..

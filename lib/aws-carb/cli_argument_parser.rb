@@ -31,7 +31,7 @@ module AWSCarb
 
       # these are the only defaults we need to bother setting since they get used before we load the config file..
       cli_arguments.global.verbose = false
-      cli_arguments.global.config_file = File.join(File.dirname($0), "config.yaml")
+      cli_arguments.global.config_file = File.join(Dir.home, ".carb/config", "config.yaml")
 
       global_options do |option|
 
