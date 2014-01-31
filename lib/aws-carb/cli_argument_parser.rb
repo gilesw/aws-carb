@@ -105,7 +105,7 @@ module AWSCarb
           begin
             data = eval(common_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.common_variables = data.deep_symbolize_keys
+            cli_arguments.subcommand.config_overrides.common_variables = data
           rescue => e
             puts "# could not parse argument for --common-variables, is it a valid hash?"
             die e
@@ -118,7 +118,7 @@ module AWSCarb
           begin
             data = eval(general_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.general_variables = data.deep_symbolize_keys
+            cli_arguments.subcommand.config_overrides.general_variables = data
           rescue => e
             puts "# could not parse argument for --general-variables, is it a valid hash?"
             die e
@@ -131,7 +131,7 @@ module AWSCarb
           begin
             data = eval(ec2_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.ec2_variables = data.deep_symbolize_keys
+            cli_arguments.subcommand.config_overrides.ec2_variables = data
           rescue => e
             puts "# could not parse argument for --ec2-variables, is it a valid hash?"
             die e
@@ -144,7 +144,7 @@ module AWSCarb
           begin
             data = eval(route53_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.route53_variables = data.deep_symbolize_keys
+            cli_arguments.subcommand.config_overrides.route53_variables = data
           rescue => e
             puts "# could not parse argument for --route53-variables, is it a valid hash?"
             die e
@@ -157,7 +157,7 @@ module AWSCarb
           begin
             data = eval(user_data_template_variables)
             raise unless data.class == Hash
-            cli_arguments.subcommand.config_overrides.user_data_template_variables = data.deep_symbolize_keys
+            cli_arguments.subcommand.config_overrides.user_data_template_variables = data
           rescue => e
             puts "# could not parse argument for --user-data-template-variables, is it a valid hash?"
             die e
@@ -202,7 +202,6 @@ module AWSCarb
 
         option.separator ""
 
-
         block_device_help = <<-HEREDOC.strip_heredoc
 
            :virtual_name - (String) Specifies the virtual device name.
@@ -222,8 +221,15 @@ module AWSCarb
 
         block_device_help = "\n\n#{indent}Specifies how block devices are exposed to the instance. Each mapping\n#{indent}is made up of a virtualName and a deviceName.\n" + block_device_help.join.downcase
 
-        option.on "--block-device-mappings=HASH", block_device_help do |key_name|
-          cli_arguments.subcommand.ec2.key_name = key_name
+        option.on "--block-device-mappings=HASH", block_device_help do |mapping|
+          begin
+            data = eval(mapping)
+            raise unless data.class == Hash
+            cli_arguments.subcommand.ec2.block_device_mappings = data
+          rescue => e
+            puts "# could not parse argument for --common-variables, is it a valid hash?"
+            die e
+          end
         end
 
         option.separator ""

@@ -60,9 +60,6 @@ module AWSCarb
           end
         end
 
-        # merge the convenience argument parameters with config
-        @config.deep_symbolize_keys!
-
       rescue => e
         puts "# failed to merge cli arguments with config"
         die e
@@ -77,8 +74,7 @@ module AWSCarb
       config_file = cli_argument_config_file
 
       begin
-        # make keys symbols so we can more easily merge with cli arg structs..
-        @config = YAML.load_file(config_file).deep_symbolize_keys
+        @config = ActiveSupport::HashWithIndifferentAccess.new(YAML.load_file(config_file))
       rescue => e
         puts "# failed to load config file: '#{config_file}'"
         die e
