@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 module AWSControl
-  module AmazonWebServices
+  module Services
     class Ec2
 
       include Singleton
