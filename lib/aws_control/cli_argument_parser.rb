@@ -16,11 +16,15 @@ module AWSControl
       indent = ' ' * 10 
 
       banner = <<-HEREDOC.strip_heredoc
-      #{File.basename($0)}
+      #{File.basename($0)}(1)
 
       #{'NAME'.colorize({:color => :white, :mode => :bold})}
 
-          amazon web services - ec2 control program
+                             AWS CARB
+
+      #{'DESCRIPTION'.colorize({:color => :white, :mode => :bold})}
+
+            amazon web services - cloudinit and route53 bootstrap
 
       HEREDOC
 
