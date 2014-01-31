@@ -29,13 +29,13 @@ module AWSCarb
 
         # special condition: common command line arguments are shared between all instances first..
         if cli_arguments.subcommand.config_overrides.common_variables
-          @config[:common] ||= ActiveSupport::HashWithIndifferentAccess({})
+          @config[:common] ||= {}
           @config[:common].update cli_arguments.subcommand.config_overrides.common_variables
         end
 
         # all sections share 'common' variables..
         config_sections.each do |section|
-          @config[section] ||= ActiveSupport::HashWithIndifferentAccess({})
+          @config[section] ||= {}
           @config[section].update @config[:common]
         end
 
@@ -48,7 +48,7 @@ module AWSCarb
             # key differs from command line argument - we lose the _variables suffix
             config_key = key.to_s.gsub('_variables', '').to_sym
 
-            @config[config_key] ||= ActiveSupport::HashWithIndifferentAccess({})
+            @config[config_key] ||= {}
             @config[config_key].update cli_arguments.subcommand.config_overrides.send(key)
           end
         end

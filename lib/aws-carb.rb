@@ -7,6 +7,7 @@ require 'awesome_print'
 require 'securerandom'
 require 'shell-spinner'
 require 'active_support'
+require 'active_support/core_ext'
 require 'active_support/core_ext/hash'
 require 'active_support/hash_with_indifferent_access'
 require 'active_support/core_ext/string/strip'
@@ -16,6 +17,8 @@ require 'subcommand'
 require 'singleton'
 require 'andand'
 require 'colorize'
+
+include ActiveSupport
 
 # module is broken up into:
 #
@@ -83,7 +86,6 @@ module AWSCarb
     #
     # aws interaction
     # 
-
     if @config[:route53].andand[:new_dns_records]
       @route53 = Services::Route53.instance
       @route53.client(@config)
