@@ -59,9 +59,8 @@ carb -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --c
 # list all the ec2 options:
 carb help create 
 
-# 
---block-device-mappings="{ :device_name => "/dev/sdc", :ebs => { :volume_size => "100G" } }"
-
+# example with block-device-mappings..
+carb -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --common-variables "{ 'hostname' => 'asdasdasasdasdsaaa' }" --block-device-mappings "{ 'device_name' => '/dev/sdc', 'ebs' => { 'volume_size' => '100G' } }"
 
 
 
