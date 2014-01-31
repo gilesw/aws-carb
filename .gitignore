@@ -1,3 +1,4 @@
 config.yaml
 aws-route53.conf
 .*.sw?
+.bundle
