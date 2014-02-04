@@ -41,8 +41,8 @@ mkdir -p ~/.carb/{config,templates}
 
 sudo updatedb
 
-cp `locate gems/aws-carb-0.0.3/configs/config.yaml.example`  ~/.carb/config/config.yaml
-cp `locate gems/aws-carb-0.0.3/template/basic.cloud-config.erb` ~/.carb/templates/
+cp `locate gems/aws-carb-0.0.3/examples/configs/config.yaml.example`  ~/.carb/config/config.yaml
+cp `locate gems/aws-carb-0.0.3/examples/templates/basic.cloud-config.erb` ~/.carb/templates/
 
 # edit config.yaml - remember to specify an ssh key because without one your ec2 instance will be inaccessible! (copy your ssh key from id_rsa.pub as a string - not a file path)
 vim ~/.carb/config/config.yaml
