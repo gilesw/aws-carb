@@ -18,6 +18,15 @@ require 'singleton'
 require 'andand'
 require 'colorize'
 
+require 'aws-carb/user_data'
+require 'aws-carb/monkey_patches'
+require 'aws-carb/config'
+require 'aws-carb/version'
+require 'aws-carb/cli_argument_parser'
+require 'aws-carb/helpers'
+require 'aws-carb/services/route53'
+require 'aws-carb/services/ec2'
+
 include ActiveSupport
 
 # module is broken up into:
