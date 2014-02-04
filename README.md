@@ -1,4 +1,4 @@
-# aws-carb: amazon web services - cloudinit and route53 bootstrap
+# amazon web services - cloudinit and route53 bootstrap
 
 ## Install
 
