@@ -108,7 +108,7 @@ module AWSCarb
         @config[:route53][:hostname] = find_with_context(:hostname, :user_data_template_variables) if find_with_context(:hostname, :user_data_template_variables)
         @config[:route53][:domain]   = find_with_context(:domain,   :user_data_template_variables) if find_with_context(:domain,   :user_data_template_variables)
         @config[:route53][:hostname] = find_with_context(:hostname, :route53)                      if find_with_context(:hostname, :route53)
-        @config[:route53][:domain]   = find_with_context(:domain, :route53)                        if find_with_context(:domain, :route53)
+        @config[:route53][:domain]   = find_with_context(:domain,   :route53)                      if find_with_context(:domain,   :route53)
 
         help = <<-HEREDOC.strip_heredoc
           #       
@@ -125,33 +125,47 @@ module AWSCarb
         hostname = @config[:route53][:hostname]
 
         if domain.nil? and hostname.nil?
-          debug "# WARNING: hostname and domain not found"
-          debug help
-          debug
+          debug <<-HEREDOC.strip_heredoc
+            # WARNING: hostname and domain not found"
+            #{help}
+
+          HEREDOC
+
         elsif domain and hostname.nil?
-          debug "# WARNING: hostname not found"
-          debug help
-          debug
+          debug <<-HEREDOC.strip_heredoc
+            # WARNING: hostname not found
+            #{help}
+
+          HEREDOC
+
         elsif domain.nil? and hostname
-          debug "# WARNING: domain not found"
-          debug help
-          debug
+          debug <<-HEREDOC.strip_heredoc
+            # WARNING: domain not found
+            #{help}
+
+          HEREDOC
+
         else
-          debug "# found hostname and domain:"
-          debug "hostname: #{hostname}"
-          debug "domain:   #{domain}"
-          debug
+          debug <<-HEREDOC.strip_heredoc
+            # found hostname and domain:
+            hostname: #{hostname}
+            domain:   #{domain}
+
+          HEREDOC
 
           @config[:route53][:new_dns_records] = {
-            :public  => { :alias => "#{hostname}.#{domain}.",         :target => nil },
-            :private => { :alias => "#{hostname}-private.#{domain}.", :target => nil }
+            :public  => {
+              :alias => "#{hostname}.#{domain}.",
+              :target => nil
+            },
+            :private => {
+              :alias => "#{hostname}-private.#{domain}.",
+              :target => nil
+            }
           }
         end
       end
-
-      puts
     end
-
 
     def display
       puts "# config:"
