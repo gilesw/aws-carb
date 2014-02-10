@@ -221,13 +221,22 @@ module AWSCarb
 
         block_device_help = "\n\n#{indent}Specifies how block devices are exposed to the instance. Each mapping\n#{indent}is made up of a virtualName and a deviceName.\n" + block_device_help.join.downcase
 
-        option.on "--block-device-mappings=HASH", block_device_help do |mapping|
+        option.on "--block-device-mappings=ARRAY", block_device_help do |mappings_data|
           begin
-            data = eval(mapping)
-            raise "parsed value isn't a hash!" unless data.class == Hash
-            cli_arguments.subcommand.ec2.block_device_mappings = ActiveSupport::HashWithIndifferentAccess.new(data)
+
+            mappings = eval(mappings_data)
+
+            raise "parsed value isn't an Array!" unless mappings.class == Array
+
+            mappings.map! do |mapping|
+              raise "mapping data isn't a hash!" unless mapping.class == Hash
+              ActiveSupport::HashWithIndifferentAccess.new(mapping)
+            end
+
+            cli_arguments.subcommand.ec2.block_device_mappings = mappings
           rescue => e
-            puts "# could not parse argument for --block-device-mappings, is it a valid hash and are the values properly quoted?"
+            puts "# could not parse argument for --block-device-mappings, are your mappings"
+            puts "# valid hashes contained in an array and are the hash values properly quoted?"
             die e
           end
         end

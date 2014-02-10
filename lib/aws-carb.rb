@@ -89,7 +89,11 @@ module AWSCarb
     # then merge user_data template with raw user_data (if provided) -
     # end up single user_data ready to pass into ec2 instance..
     @user_data = UserData.instance
-    @user_data.create(@config)
+
+    combined_user_data = @user_data.create(@config)
+
+    @config.config[:ec2][:user_data] = combined_user_data
+
     @user_data.display if @config[:user_data_template][:file] and ($GLOBAL_VERBOSE or @config[:show_parsed_template])
 
     #

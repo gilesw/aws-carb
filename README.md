@@ -53,11 +53,44 @@ carb -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --c
 # list all the ec2 options:
 carb help create 
 
-# example with block-device-mappings..
-carb -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --common-variables "{ 'hostname' => 'asdasdasasdasdsaaa' }" --block-device-mappings "{ 'device_name' => '/dev/sdc', 'ebs' => { 'volume_size' => '100G' } }"
+```
 
+## Understanding block-device-mappings
 
+### Description
 
+When specifying block-device mappings, each mapping must be a valid hash and must be contained in an array.
+
+Once the machine has booted the block device(s) will be available through their virtual block device, e.g:
+
+```
+# /dev/xv<disk><partition>
+/dev/sdc1 = /dev/xvc1
+/dev/sdf0 = /dev/xvf0
+...
+```
+
+http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
+
+### Examples
+
+A typical block device mapping:
+
+```
+[{ 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } }]
+```
+
+Multiple block device mappings:
+```
+[
+  { 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } },
+  { 'device_name' => '/dev/sdf2', 'ebs' => { 'volume_size' => 500 } }
+]
+```
+
+Typical command line usage:
+```
+carb -c ~/.carb/config/config.yaml -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --block-device-mappings "[{ 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } }]"
 ```
 
 

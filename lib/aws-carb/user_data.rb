@@ -10,11 +10,14 @@ module AWSCarb
     def create(config)
       user_data_template_resolved = resolve_template(config)
       @combined_user_data         = combine_user_data(config, user_data_template_resolved)
-      @user_data_template         = nil
-      @resolved_template          = nil
+      ap @combined_user_data
+      return @combined_user_data
     end
 
     def resolve_template(config)
+
+      user_data_template         = nil
+      resolved_template          = nil
 
       # FIXME: blank templates / empty templates / no template should work..
 
@@ -26,7 +29,7 @@ module AWSCarb
 
           raise ArgumentError, "no such file: #{template_file}" unless File.exist?(template_file)
 
-          @user_data_template = File.read(template_file)
+          user_data_template = File.read(template_file)
         rescue => e
           puts "# unable to open template file:"
           die e
@@ -37,7 +40,7 @@ module AWSCarb
 
      ShellSpinner "# parsing template"  do
         begin
-          @resolved_template = Erubis::Eruby.new(@user_data_template).result(config[:user_data_template_variables])
+          resolved_template = Erubis::Eruby.new(user_data_template).result(config[:user_data_template_variables])
         rescue => e
           puts "# failed to resolve variables in user_data_template:"
           die e
@@ -46,7 +49,7 @@ module AWSCarb
 
       puts
 
-      return @resolved_template
+      return resolved_template
     end
 
     def combine_user_data(config, user_data_template_resolved)

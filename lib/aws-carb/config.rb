@@ -4,7 +4,7 @@ module AWSCarb
   class Config
     include Singleton
 
-    attr_reader :config
+    attr_accessor :config
 
     def create(cli_arguments)
 
