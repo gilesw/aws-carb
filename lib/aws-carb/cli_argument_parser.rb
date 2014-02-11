@@ -273,7 +273,12 @@ module AWSCarb
 
         option.separator ""
 
-        option.on "--security-group-ids=ARRAY", Array, "\n\n#{indent}security_group_ids accepts a single ID or an array of\n#{indent}security group IDs.".downcase do |group_ids|
+        option.on "--security-group-ids=ARRAY", Array, "\n\n#{indent}security_group_ids accepts a single ID or an array of\n#{indent}security group IDs.".downcase do |group_ids_data|
+
+          group_ids = eval(group_ids_data)
+
+          raise "parsed value isn't an Array!" unless group_ids.class == Array
+
           cli_arguments.subcommand.ec2.security_group_ids = group_ids
         end
 
