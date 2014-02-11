@@ -178,12 +178,6 @@ module AWSCarb
         # connect: 
         ssh #{@ec2.instance.dns_name} -l ubuntu
       HEREDOC
-    else
-      summary += <<-HEREDOC.strip_heredoc
-
-        # instance has no publicly available address, does 
-        # the vm belong to a vpc?
-      HEREDOC
     end
 
     puts summary
