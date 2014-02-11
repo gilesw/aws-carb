@@ -75,7 +75,19 @@ module AWSCarb
 
             raise "error: '#{record_scope}' record already exists: #{record[:alias]}" if new_record.exists?
 
-            record_sets.create(record[:alias], 'CNAME', :ttl => @config[:route53][:ttl], :resource_records => [{:value => record[:target]}])
+            # this could be blank if we're adding to a vpc and the instance has no external IP
+            next if record[:target].nil?
+
+            new_record = {
+              :name    => record[:alias],
+              :type    => 'CNAME',
+              :options => {
+                :ttl              => @config[:route53][:ttl],
+                :resource_records => [{ :value => record[:target] }]
+              }
+            }
+
+            record_sets.create(new_record[:name], new_record[:type], new_record[:options])
           end
         end
 

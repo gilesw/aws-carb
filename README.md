@@ -93,4 +93,3 @@ Typical command line usage:
 carb -c ~/.carb/config/config.yaml -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --block-device-mappings "[{ 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } }]"
 ```
 
-

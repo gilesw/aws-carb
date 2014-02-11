@@ -165,6 +165,8 @@ module AWSCarb
           }
         end
       end
+
+      puts
     end
 
     def display

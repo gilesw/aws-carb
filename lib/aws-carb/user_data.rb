@@ -10,7 +10,6 @@ module AWSCarb
     def create(config)
       user_data_template_resolved = resolve_template(config)
       @combined_user_data         = combine_user_data(config, user_data_template_resolved)
-      ap @combined_user_data
       return @combined_user_data
     end
 

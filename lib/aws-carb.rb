@@ -121,27 +121,71 @@ module AWSCarb
     show_instance_details
   end
 
+
   def self.show_instance_details
-    puts <<-HEREDOC.strip_heredoc
-      # instance details:
+
+    instance_attributes = []
+    instance_data = {}
+
+    ShellSpinner "# collecting instance data", false do
+      instance_attributes << @ec2.instance.class.describe_call_attributes.keys
+      instance_attributes << @ec2.instance.class.reservation_attributes.keys
+      instance_attributes << @ec2.instance.class.mutable_describe_attributes.keys
+
+      instance_attributes.flatten!
+
+      instance_attributes.each do |attribute|
+        value = @ec2.instance.send(attribute)
+
+        next unless value
+        next if attribute == :user_data
+
+        if value.class == AWS::Core::Data::List
+          instance_data[attribute] = value.to_a
+        else
+          instance_data[attribute] = value
+        end
+      end
+    end
+
+    puts
+    puts "# instance details:"
+    puts instance_data.to_yaml
+    puts
+
+    summary = <<-HEREDOC.strip_heredoc
+      # instance summary:
       id:               #{@ec2.instance.id}
-      public ip:        #{@ec2.instance.public_ip_address}
-      public aws fqdn:  #{@ec2.instance.public_dns_name}
+    HEREDOC
+
+    summary += "public ip:        #{@ec2.instance.public_ip_address}" if @ec2.instance.public_ip_address
+    summary += "public aws fqdn:  #{@ec2.instance.public_dns_name}"   if @ec2.instance.public_dns_name
+
+    summary += <<-HEREDOC.strip_heredoc
       private ip:       #{@ec2.instance.private_ip_address}
       private aws fqdn: #{@ec2.instance.private_dns_name}
     HEREDOC
 
     unless @config[:route53][:new_dns_records].nil?
-      puts <<-HEREDOC.strip_heredoc
-        public fqdn:      #{@config[:route53][:new_dns_records][:public][:alias]}
-        private fqdn:     #{@config[:route53][:new_dns_records][:private][:alias]}
+      # tests exist since if a machine is part of a vpc it may not have a public fqdn..
+      summary += "public fqdn:      #{@config[:route53][:new_dns_records][:public][:alias]}" if @config[:route53][:new_dns_records][:public][:target]
+      summary += "private fqdn:     #{@config[:route53][:new_dns_records][:private][:alias]}" if @config[:route53][:new_dns_records][:private][:target]
+    end
+
+    if @ec2.instance.dns_name
+      summary += <<-HEREDOC.strip_heredoc
+
+        # connect: 
+        ssh #{@ec2.instance.dns_name} -l ubuntu
+      HEREDOC
+    else
+      summary += <<-HEREDOC.strip_heredoc
+
+        # instance has no publicly available address, does 
+        # the vm belong to a vpc?
       HEREDOC
     end
 
-    puts <<-HEREDOC.strip_heredoc
-      
-      # connect: 
-      ssh #{@ec2.instance.dns_name} -l ubuntu
-    HEREDOC
+    puts summary
   end
 end
