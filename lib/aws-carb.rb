@@ -2,7 +2,7 @@
 
 # require first to instantiate logger before anything else
 require 'log4r'
-require 'aws-carb/logger'
+require 'aws-carb/log4r'
 
 require 'aws-sdk'
 require 'yaml'
