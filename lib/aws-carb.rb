@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+# require first to instantiate logger before anything else
+require 'log4r'
+require 'aws-carb/logger'
+
 require 'aws-sdk'
 require 'yaml'
 require 'erubis'
@@ -29,6 +33,7 @@ require 'aws-carb/services/ec2'
 
 include ActiveSupport
 
+
 # module is broken up into:
 #
 # AWSCarb.*                  - main methods
@@ -39,6 +44,7 @@ include ActiveSupport
 # AWSCarb::Services::Route53 - create dns records in route53
 #
 
+# stuff to override colouring of strings if not a terminal
 if ! $stdout.tty?
   String.class_eval do
     def colorize(args)

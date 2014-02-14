@@ -29,4 +29,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "erubis",        ">= 2.7.0"
   spec.add_dependency "shell-spinner", ">= 1.0.0"
   spec.add_dependency "subcommand",    ">= 1.0.0"
+  spec.add_dependency "log4r",         ">= 1.0.0"
 end
