@@ -134,19 +134,22 @@ module AWSCarb
 
       instance_attributes.flatten!
 
-      # FIXME:
-      #instance_attributes.each do |attribute|
-      #  value = @ec2.instance.send(attribute)
+      begin
+        instance_attributes.each do |attribute|
+          value = @ec2.instance.send(attribute)
 
-      #  next unless value
-      #  next if attribute == :user_data
+          next unless value
+          next if attribute == :user_data
 
-      #  if value.class == AWS::Core::Data::List
-      #    instance_data[attribute] = value.to_a
-      #  else
-      #    instance_data[attribute] = value
-      #  end
-      #end
+          if value.class == AWS::Core::Data::List
+            instance_data[attribute] = value.to_a
+          else
+            instance_data[attribute] = value
+          end
+        end
+      rescue => e
+        puts e
+      end
     end
 
     puts
