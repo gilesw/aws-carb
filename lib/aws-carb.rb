@@ -136,6 +136,10 @@ module AWSCarb
 
       begin
         instance_attributes.each do |attribute|
+
+          # FIXME: You may only describe the sourceDestCheck attribute for VPC instances
+          next if attribute == :source_dest_check
+
           value = @ec2.instance.send(attribute)
 
           next unless value
@@ -162,18 +166,15 @@ module AWSCarb
       id:               #{@ec2.instance.id}
     HEREDOC
 
-    summary += "public ip:        #{@ec2.instance.public_ip_address}" if @ec2.instance.public_ip_address
-    summary += "public aws fqdn:  #{@ec2.instance.public_dns_name}"   if @ec2.instance.public_dns_name
-
-    summary += <<-HEREDOC.strip_heredoc
-      private ip:       #{@ec2.instance.private_ip_address}
-      private aws fqdn: #{@ec2.instance.private_dns_name}
-    HEREDOC
+    summary += "public ip:        #{@ec2.instance.public_ip_address}\n" if @ec2.instance.public_ip_address
+    summary += "private ip:       #{@ec2.instance.private_ip_address}\n"
+    summary += "public aws fqdn:  #{@ec2.instance.public_dns_name}\n"   if @ec2.instance.public_dns_name
+    summary += "private aws fqdn: #{@ec2.instance.private_dns_name}\n"
 
     unless @config[:route53][:new_dns_records].nil?
       # tests exist since if a machine is part of a vpc it may not have a public fqdn..
-      summary += "public fqdn:      #{@config[:route53][:new_dns_records][:public][:alias]}" if @config[:route53][:new_dns_records][:public][:target]
-      summary += "private fqdn:     #{@config[:route53][:new_dns_records][:private][:alias]}" if @config[:route53][:new_dns_records][:private][:target]
+      summary += "public fqdn:      #{@config[:route53][:new_dns_records][:public][:alias]}\n" if @config[:route53][:new_dns_records][:public][:target]
+      summary += "private fqdn:     #{@config[:route53][:new_dns_records][:private][:alias]}\n" if @config[:route53][:new_dns_records][:private][:target]
     end
 
     if @ec2.instance.dns_name
