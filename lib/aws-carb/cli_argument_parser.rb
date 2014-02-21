@@ -273,18 +273,22 @@ module AWSCarb
 
         option.separator ""
 
-        option.on "--security-group-ids=ARRAY", Array, "\n\n#{indent}security_group_ids accepts a single ID or an array of\n#{indent}security group IDs.".downcase do |group_ids_data|
-
-          group_ids = eval(group_ids_data)
-
-          raise "parsed value isn't an Array!" unless group_ids.class == Array
-
+        option.on "--security-group-ids=<ID>,<ID>,..", Array, "\n\n#{indent}security_group_ids accepts a single ID or an array of\n#{indent}security group IDs.".downcase do |group_ids|
           cli_arguments.subcommand.ec2.security_group_ids = group_ids
         end
 
         option.separator ""
 
-        option.on "--disable-api-termination=BOOLEAN", "\n\n#{indent}instance termination via the instance API.".downcase do |api_termination|
+        option.on "--disable-api-termination=BOOLEAN", "\n\n#{indent}instance termination via the instance API.".downcase do |api_termination_data|
+
+          api_termination = case api_termination_data
+          when "true"
+            true
+          when "false"
+            false
+          else raise ArgumentError, "unknown parameter for --disable-api-termination: #{api_termination_data}"
+          end
+
           cli_arguments.subcommand.ec2.disable_api_termination = api_termination
         end
 
@@ -302,8 +306,14 @@ module AWSCarb
 
         option.separator ""
 
-        option.on "--private_ip_address=STRING", "\n\n#{indent}If you're using VPC, you can optionally use this option to assign the\n#{indent}instance a specific available IP address from the subnet (e.g., '10.0.0.25').\n#{indent}This option is not valid for instances launched outside a VPC (i.e.\n#{indent}those launched without the :subnet option).".downcase do |ip|
+        option.on "--private-ip-address=STRING", "\n\n#{indent}If you're using VPC, you can optionally use this option to assign the\n#{indent}instance a specific available IP address from the subnet (e.g., '10.0.0.25').\n#{indent}This option is not valid for instances launched outside a VPC (i.e.\n#{indent}those launched without the :subnet option).".downcase do |ip|
           cli_arguments.subcommand.ec2.private_ip_address = ip
+        end
+
+        option.separator ""
+
+        option.on "--associate-public-ip-address=STRING", "\n\n#{indent}This option isn't documented but appears to exist in the code. For use when creating instances in a VPC.".downcase do |ip|
+          cli_arguments.subcommand.ec2.associate_public_ip_address = ip
         end
 
         option.separator ""

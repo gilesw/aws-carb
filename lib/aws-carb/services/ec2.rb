@@ -63,6 +63,7 @@ module AWSCarb
               :private_ip_address,
               :dedicated_tenancy,
               :ebs_optimized,
+              :associate_public_ip_address,
             ]
 
             ec2_config = {}
