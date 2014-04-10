@@ -19,7 +19,8 @@ bootcmd:
 
 package_upgrade: true
 
-manage_etc_hosts: true
+# don't overwrite /etc/hosts on boot..
+manage_etc_hosts: false
 
 packages:
   - puppet
