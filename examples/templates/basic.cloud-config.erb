@@ -2,6 +2,8 @@
 
 # the above line is required by cloud init
 
+# this config has been tested with precise
+
 <%- if defined?(hostname) %>
 hostname: <%= hostname %>
 fqdn: <%= hostname -%>.<%= domain %>
