@@ -31,12 +31,12 @@ Leaving this stuff here until proper docs have been written:
 gem install aws-carb
 
 # install config and template directories
-mkdir -p ~/.carb/{config,templates}
+mkdir -p ~/.carb/{config,template}
 
 sudo updatedb
 
-cp `locate gems/aws-carb-0.0.3/examples/configs/config.yaml.example`  ~/.carb/config/config.yaml
-cp `locate gems/aws-carb-0.0.3/examples/templates/basic.cloud-config.erb` ~/.carb/templates/
+cp `locate gems/aws-carb-0.0.3/examples/config/config.yaml.example`  ~/.carb/config/config.yaml
+cp `locate gems/aws-carb-0.0.3/examples/template/basic.cloud-config.erb` ~/.carb/template/
 
 # edit config.yaml - remember to specify an ssh key because without one your ec2 instance will be inaccessible! (copy your ssh key from id_rsa.pub as a string - not a file path)
 vim ~/.carb/config/config.yaml
@@ -48,7 +48,7 @@ carb create --image-id <ami id>
 
 # create an instance but bootstrap it with the user-data cloudinit template and also get some route53 goodness going on because hostname is set
 # run with verbose to see more interesting info
-carb -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --common-variables "{ 'hostname' => 'asdasdasasdasdsa' }"
+carb -v create --user-data-template ~/.carb/template/basic.cloud-config.erb --common-variables "{ 'hostname' => 'asdasdasasdasdsa' }"
 
 # list all the ec2 options:
 carb help create 
@@ -90,6 +90,6 @@ Multiple block device mappings:
 
 Typical command line usage:
 ```
-carb -c ~/.carb/config/config.yaml -v create --user-data-template ~/.carb/templates/basic.cloud-config.erb --block-device-mappings "[{ 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } }]"
+carb -c ~/.carb/config/config.yaml -v create --user-data-template ~/.carb/template/basic.cloud-config.erb --block-device-mappings "[{ 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } }]"
 ```
 

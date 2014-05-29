@@ -1,0 +1,41 @@
+#cloud-config
+
+# the above line is required by cloud init
+
+# this config has been tested with ubuntu lucid
+
+output: {all: '| tee -a /var/log/cloud-init-user-data.log'}
+
+<%- if defined?(hostname) %>
+hostname: <%= hostname %>
+fqdn: <%= hostname -%>.<%= domain %>
+<% end %>
+
+<%- if defined?(ssh_keys) %>
+ssh_authorized_keys:
+  <% ssh_keys.each do |key| %>
+  - <%= key %>
+  <% end %>
+<% end %>
+
+package_upgrade: true
+
+packages:
+  - puppet
+  - facter
+  - lsb-release
+  - ruby1.9.1
+  - ruby1.9.1-dev
+  - libxml2-dev
+  - build-essential
+
+runcmd:
+  - mkdir /root/.aws
+  - echo '[profile s3]' >> /root/.aws/config
+  - echo 'aws_access_key_id = <%= s3_access_key_id %>' >> /root/.aws/config
+  - echo 'aws_secret_access_key = <%= s3_secret_access_key %>' >> /root/.aws/config
+  - echo 'region = <%= s3_region %>' >> /root/.aws/config
+  - echo <%= hostname -%> > /etc/hostname
+  - echo "127.0.1.1 <%= hostname -%>.<%= domain -%> <%= hostname %>" >> /etc/hosts
+  - echo "#!/bin/bash\nbash -s -- -force -verbose localhost < <(curl -s http://repo.semantico.net/sem_bootstrap/sem-ssh-sps) > /var/log/sem-ssh-sps.log 2>&1 && touch /root/done && echo > /etc/rc.local" > /etc/rc.local
+  - shutdown -r now
