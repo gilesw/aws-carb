@@ -1,5 +1,19 @@
 # amazon web services - cloudinit and route53 bootstrap
 
+```
+      
+       ::::::::      :::     :::::::::  :::::::::  
+      :+:    :+:   :+: :+:   :+:    :+: :+:    :+: 
+      +:+         +:+   +:+  +:+    +:+ +:+    +:+ 
+      +#+        +#++:++#++: +#++:++#:  +#++:++#+  
+      +#+        +#+     +#+ +#+    +#+ +#+    +#+ 
+      #+#    #+# #+#     #+# #+#    #+# #+#    #+# 
+       ########  ###     ### ###    ### #########  
+      
+          - cloudinit and route53 bootstrap -
+
+```
+
 ## Install
 
 ### rubygems
@@ -8,7 +22,7 @@
 gem install aws-carb
 ```
 
-### Depdendencies
+### Dependencies
 
 If you've compiled your own ruby (rvm/rbenv, etc) then you will need to make sure ruby has support for various libraries.
 
