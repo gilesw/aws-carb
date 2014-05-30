@@ -2,17 +2,15 @@
 
 ## Install
 
-Via rubygems:
+### rubygems
 
 ```
 gem install aws-carb
 ```
 
-If using rbenv/rvm, ruby will need to be compiled with support for the following:
+### Depdendencies
 
-* libreadline
-* zlib
-* openssl
+If you've compiled your own ruby (rvm/rbenv, etc) then you will need to make sure ruby has support for various libraries.
 
 For debian based systems, do the following before compiling ruby:
 ```
