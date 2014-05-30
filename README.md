@@ -2,10 +2,21 @@
 
 ## Install
 
-via rubygems:
+Via rubygems:
 
 ```
 gem install aws-carb
+```
+
+If using rbenv/rvm, ruby will need to be compiled with support for the following:
+
+* libreadline
+* zlib
+* openssl
+
+For debian based systems, do the following before compiling ruby:
+```
+sudo apt-get isntall libreadline-dev zlib1g-dev libssl-dev
 ```
 
 ## Configuration
@@ -48,10 +59,11 @@ carb create --image-id <ami id>
 
 # create an instance but bootstrap it with the user-data cloudinit template and also get some route53 goodness going on because hostname is set
 # run with verbose to see more interesting info
+# Note: parameters specified on the command line override variables set in the config file
 carb -v create --user-data-template ~/.carb/template/basic.cloud-config.erb --common-variables "{ 'hostname' => 'asdasdasasdasdsa' }"
 
 # list all the ec2 options:
-carb help create 
+carb help create
 
 ```
 

@@ -81,14 +81,39 @@ module AWSCarb
     #
 
     # parse cli args
-    cli_arguments = CliArgumentParser.parse
+    subcommand, @cli_arguments = CliArgumentParser.parse
 
     # display banner on successful cli argument parsing..
     banner
 
+    ap subcommand
+
+    case subcommand
+    when :create
+      self.create
+    when :purge
+      self.purge
+    else
+      raise StandardError, "unknown exception"
+    end
+  end
+
+  def self.purge
+
+    # check route53
+
+    # check ec2 instance api_terminate?
+
+    # remove route53 ...
+
+    # remove ec2 instance ...
+  end
+
+  def self.create
     # create a configuration based on our various data sources..
     @config = Config.instance
-    @config.create(cli_arguments)
+
+    @config.create(@cli_arguments)
     @config.display if $GLOBAL_VERBOSE
 
     # load erb template and parse the template with user_data_template_variables
@@ -126,7 +151,6 @@ module AWSCarb
 
     show_instance_details
   end
-
 
   def self.show_instance_details
 

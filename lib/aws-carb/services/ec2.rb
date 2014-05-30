@@ -24,9 +24,38 @@ module AWSCarb
         end
       end
 
-      def create_instance
+      def instance_id(hostname)
 
-        instance = nil
+        instances = @client.client.describe_instances.to_hash
+
+        # find out if an instances Name tag matches the supplied hostname
+        instances[:reservation_set].each do |reservation|
+          reservation[:instances_set].each do |instance|
+            instance[:tag_set].each do |tag|
+              return instance[:instance_id] if tag[:key] == "Name" and tag[:value] == hostname
+            end
+          end
+        end
+
+        raise ArgumentError, "could not find instance with Name tag that matches the specified hostname!"
+      end
+
+      def delete_instance_by_hostname(hostname)
+        delete_instance_by_id(instance_id(hostname))
+      end
+
+      def delete_instance_by_id(id)
+        ShellSpinner "# delete instance", false do
+          begin
+            instance = @client.instnaces[id]
+            instance.exists?
+            instance.api_termination_disabled?
+            instance.delete
+          end
+        end
+      end
+
+      def create_instance
 
         ShellSpinner "# creating instance", false do
 

@@ -12,8 +12,9 @@ module AWSCarb
       cli_arguments.subcommand.config_overrides   = OpenStruct.new
       cli_arguments.subcommand.ec2                = OpenStruct.new
       cli_arguments.subcommand.route53            = OpenStruct.new
+      cli_arguments.subcommand.purge              = OpenStruct.new
 
-      indent = ' ' * 10 
+      indent = ' ' * 10
 
       banner = <<-HEREDOC.strip_heredoc
       #{File.basename($0)}(1)
@@ -363,8 +364,39 @@ module AWSCarb
 
       end
 
+      command :purge do |option|
+
+        option.summary_width  = 50
+        option.summary_indent = '  '
+
+        synopsis = <<-HEREDOC.strip_heredoc
+        #{'SYNOPSIS'.colorize({:color => :white, :mode => :bold})}
+
+            #{File.basename($0)} create [options]
+
+        HEREDOC
+
+        option.banner      = banner + synopsis
+        option.description = "purge an ec2 instance"
+
+        option.separator ""
+        option.separator "    purge options:"
+        option.separator ""
+
+        option.on "--hostname=HOSTNAME", "\n\n#{indent}hostname of machine to purge" do |hostname|
+          cli_arguments.subcommand.purge.hostname = hostname
+        end
+
+        option.separator ""
+
+        option.on "--id=id", "\n\n#{indent}id of machine to purge" do |id|
+          cli_arguments.subcommand.purge.id = id
+        end
+
+        option.separator ""
+      end
+
       begin
-        #cli_arguments.chosen_subcommand = opt_parse
         subcommand = opt_parse
 
         # show help if no arguments passed in
@@ -383,7 +415,7 @@ module AWSCarb
         exit 1
       end
 
-      return cli_arguments
+      return subcommand.to_sym, cli_arguments
     end
   end
 end
