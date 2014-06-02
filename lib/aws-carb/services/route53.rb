@@ -45,7 +45,7 @@ module AWSCarb
             record_sets = @client.hosted_zones[@config[:route53][:zone]].resource_record_sets
 
             @config[:route53][:new_dns_records].each_value do |record|
-              die "error: record already exists: #{record[:alias]}" if record_sets[record[:alias], 'CNAME'].exists?
+              die "error: record already exists: #{record[:alias]}" if record_sets[record[:alias], 'A'].exists?
             end
           rescue => e
             puts "# could not check to see if DNS records exist:"
@@ -63,15 +63,15 @@ module AWSCarb
           return
         end
 
-        ShellSpinner "# updating route53 with new CNAMES for host", false do
+        ShellSpinner "# updating route53 with new A records for host", false do
 
-          @config[:route53][:new_dns_records][:public][:target]  = ec2.instance.public_dns_name
-          @config[:route53][:new_dns_records][:private][:target] = ec2.instance.private_dns_name
+          @config[:route53][:new_dns_records][:public][:target]  = ec2.instance.ip_address
+          @config[:route53][:new_dns_records][:private][:target] = ec2.instance.private_ip_address
 
           record_sets = @client.hosted_zones[@config[:route53][:zone]].resource_record_sets
 
           @config[:route53][:new_dns_records].each do |record_scope, record|
-            new_record = record_sets[record[:alias], 'CNAME']
+            new_record = record_sets[record[:alias], 'A']
 
             raise "error: '#{record_scope}' record already exists: #{record[:alias]}" if new_record.exists?
 
@@ -80,7 +80,7 @@ module AWSCarb
 
             new_record = {
               :name    => record[:alias],
-              :type    => 'CNAME',
+              :type    => 'A',
               :options => {
                 :ttl              => @config[:route53][:ttl],
                 :resource_records => [{ :value => record[:target] }]
