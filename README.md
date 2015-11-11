@@ -117,3 +117,31 @@ Typical command line usage:
 carb -c ~/.carb/config/config.yaml -v create --user-data-template ~/.carb/template/basic.cloud-config.erb --block-device-mappings "[{ 'device_name' => '/dev/sdf1', 'ebs' => { 'volume_size' => 500 } }]"
 ```
 
+Example customer command line usage:
+```
+
+ithaka sams
+
+carb -c ~/.carb/config/ithaka-lucid-xa.yaml -v create --user-data-template ~/.carb/template/cloud-config.erb  --instance-type c3.xlarge --common-variables "{ 'hostname' => 'cspithsam08x1' }" --block-device-mappings "[{ 'device_name' => '/dev/sda1', 'ebs' => { 'volume_size' => 32, 'volume_type' => 'gp2' } }]"
+
+arb -c ~/.carb/config/ithaka-lucid-yb.yaml -v create --user-data-template ~/.carb/template/cloud-config.erb  --instance-type c3.xlarge --common-variables "{ 'hostname' => 'cspithsam08y2' }" --block-device-mappings "[{ 'device_name' => '/dev/sda1', 'ebs' => { 'volume_size' => 32, 'volume_type' => 'gp2' } }]"
+
+ithaka star
+
+carb -c ~/.carb/config/ithaka-star-xa.yaml -v create --user-data-template ~/.carb/template/cloud-config.erb  --instance-type c1.medium --common-variables "{ 'hostname' => 'cspithstar08x2' }" --block-device-mappings "[{ 'device_name' => '/dev/sda1', 'ebs' => { 'volume_size' => 12, 'volume_type' => 'gp2' } }]"
+
+carb -c ~/.carb/config/ithaka-star-yb.yaml -v create --user-data-template ~/.carb/template/cloud-config.erb  --instance-type c1.medium --common-variables "{ 'hostname' => 'cspithstar08y2' }" --block-device-mappings "[{ 'device_name' => '/dev/sda1', 'ebs' => { 'volume_size' => 12, 'volume_type' => 'gp2' } }]"
+
+ithaka dataqa
+
+carb -c ~/.carb/config/ithaka-star-dataqa-x.yaml -v create --user-data-template ~/.carb/template/cloud-config.erb  --instance-type c1.medium  --common-variables "{ 'hostname' => 'cspithqastar08x2' }"
+
+single node sams in our aws account
+
+carb -c ~/.carb/config/sem-x.yaml -v create --user-data-template ~/.carb/template/cloud-config.erb  --instance-type t2.medium --common-variables "{ 'hostname' => 'cspcolsam30x1' }" --block-device-mappings "[{ 'device_name' => '/dev/sda1', 'ebs' => { 'volume_size' => 32, 'volume_type' => 'gp2' } }]"
+
+
+
+```
+
+
