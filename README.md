@@ -16,10 +16,14 @@
 
 ## Install
 
+
+
+
 ### rubygems
 
 ```
-gem install aws-carb
+gem build aws-carb.gemspec
+gem install --local aws-carb-*.gem
 ```
 
 ### Dependencies
@@ -35,6 +39,7 @@ sudo apt-get isntall libreadline-dev zlib1g-dev libssl-dev
 
 At minimum, Carb needs to know your aws-ec2 credentials. The simplest way to allow this is to edit ~/.carb/config/config.yaml. See config/config.yaml.example for an example config.
 
+See aws-config project for credentials
 
 ## Example usage
 
